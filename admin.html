@@ -5,6 +5,7 @@
   <title>Admin Portal - Malaysian Chess Federation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <style>
     body { 
       background-color: #f4f6f9; 
@@ -71,10 +72,26 @@
       background: #ffffff;
       border: 1px solid #e9ecef;
       border-radius: 6px;
-      min-height: 48px;
+      min-height: 50px;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    
+    /* Yellow highlight box for edited fields */
+    .grid-cell.cell-modified {
+      background-color: #fff8e1 !important;
+      border: 1px dashed #ffc107 !important;
+    }
+    .badge-edited-indicator {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #856404;
+      background-color: #ffeeba;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 6px;
     }
     .cell-title {
       font-size: 0.72rem;
@@ -82,6 +99,24 @@
       font-weight: 700;
       color: #6c757d;
       margin-bottom: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .btn-edit-field {
+      border: none;
+      background: none;
+      color: #6c757d;
+      font-size: 0.82rem;
+      padding: 0 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+    .btn-edit-field:hover {
+      color: #0d6efd;
+      background-color: #e9ecef;
     }
     .cell-content {
       font-weight: 600;
@@ -289,6 +324,9 @@
   </div>
 </footer>
 
+<!-- SweetAlert2 for clean modal editing -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 // Cloudflare Worker Proxy URL
 const SCRIPT_URL = "https://fide-id-app.mcf-ratings.workers.dev/";
@@ -349,7 +387,7 @@ let currentSearch = '';
 let masterCurrentPage = 1;
 
 // Rating Officer Pending State Filters
-let roPendingStateFilter = 'ALL'; // 'ALL', 'UNCHECKED', 'PRECHECKED'
+let roPendingStateFilter = 'ALL';
 let roPendingStateSearch = '';
 
 window.onload = function() {
@@ -623,6 +661,142 @@ function checkLiveTxDuplicate(rowIndex) {
   }
 }
 
+// ==========================================
+// INLINE EDITABLE CELL BUILDER (WITH AUDIT)
+// ==========================================
+function renderEditableCell(r, fieldKey, fieldLabel, canEdit) {
+  const original = (r.originalData && r.originalData[fieldKey]) ? String(r.originalData[fieldKey]).trim() : '';
+  const current = r[fieldKey] ? String(r[fieldKey]).trim() : '';
+  
+  // Flag as modified if original exists and differs from current
+  const isModified = Boolean(original && current && original.toLowerCase() !== current.toLowerCase());
+
+  return `
+    <div class="grid-cell ${isModified ? 'cell-modified' : ''}" id="cell-container-${fieldKey}-${r.rowIndex}">
+      <span class="cell-title">
+        <span>
+          ${fieldLabel}
+          ${isModified ? `<span class="badge-edited-indicator" title="Original submitted: ${original.replace(/"/g, '&quot;')}">✏️ Edited (Orig: ${original})</span>` : ''}
+        </span>
+        ${canEdit ? `<button type="button" class="btn-edit-field" title="Edit ${fieldLabel}" onclick="openEditFieldModal(${r.rowIndex}, '${fieldKey}', '${fieldLabel}')">✏️ Edit</button>` : ''}
+      </span>
+      <span class="cell-content" id="cell-val-${fieldKey}-${r.rowIndex}">${current || '-'}</span>
+    </div>
+  `;
+}
+
+// Inline Edit Modal Controller using SweetAlert2
+function openEditFieldModal(rowIndex, fieldKey, fieldLabel) {
+  const record = (currentData.records || []).find(x => x.rowIndex === rowIndex);
+  if (!record) return;
+
+  const currentValue = record[fieldKey] || '';
+  const isGender = (fieldKey === 'sex');
+  const isDob = (fieldKey === 'dob');
+
+  let inputType = 'text';
+  let inputOptions = null;
+
+  if (isGender) {
+    inputType = 'select';
+    inputOptions = { 'Male': 'Male', 'Female': 'Female' };
+  } else if (isDob) {
+    inputType = 'date';
+  }
+
+  Swal.fire({
+    title: `Edit ${fieldLabel}`,
+    text: `Applicant: ${record.fullName}`,
+    input: inputType,
+    inputValue: currentValue,
+    inputOptions: inputOptions,
+    inputPlaceholder: `Enter new ${fieldLabel}`,
+    showCancelButton: true,
+    confirmButtonText: 'Save Changes',
+    confirmButtonColor: '#0d6efd',
+    showLoaderOnConfirm: true,
+    preConfirm: (val) => {
+      if (!val || !val.trim()) {
+        Swal.showValidationMessage(`${fieldLabel} cannot be left empty.`);
+        return false;
+      }
+      return val.trim();
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      executeSaveFieldEdit(rowIndex, fieldKey, result.value);
+    }
+  });
+}
+
+function executeSaveFieldEdit(rowIndex, fieldKey, newValue) {
+  const token = getToken();
+  const record = (currentData.records || []).find(x => x.rowIndex === rowIndex);
+  if (!record) return;
+
+  const oldIc = record.icNo;
+
+  callApi({
+    action: 'updateApplicantField',
+    token: token,
+    rowIndex: rowIndex,
+    fieldKey: fieldKey,
+    newValue: newValue
+  }, res => {
+    if (!res.success) {
+      Swal.fire('Error', res.error || 'Failed to update field.', 'error');
+      return;
+    }
+
+    // 1. Update In-Memory Record
+    record[fieldKey] = newValue;
+    if (res.originalData) {
+      record.originalData = res.originalData;
+    }
+
+    // 2. If IC changed, trigger instant duplicate recalculation
+    if (fieldKey === 'icNo') {
+      recalculateLiveIcDuplicates(rowIndex, oldIc, newValue);
+    }
+
+    // 3. Re-render UI to update cards, badges, and duplicate warnings immediately
+    Swal.fire({
+      icon: 'success',
+      title: 'Updated Successfully',
+      timer: 1200,
+      showConfirmButton: false
+    });
+
+    routeView();
+  }, err => {
+    Swal.fire('Connection Error', err.message, 'error');
+  });
+}
+
+function recalculateLiveIcDuplicates(rowIndex, oldIc, newIc) {
+  const cleanNew = cleanKey(newIc);
+
+  // Re-index all records against the newly modified IC
+  const matches = [];
+  (currentData.records || []).forEach(r => {
+    if (r.rowIndex !== rowIndex && cleanKey(r.icNo) === cleanNew) {
+      matches.push({
+        rowIndex: r.rowIndex,
+        fullName: r.fullName,
+        state: r.state,
+        source: r.isArchived ? 'Archive' : 'Active',
+        assignedFideId: r.assignedFideId,
+        stateStatus: r.stateStatus
+      });
+    }
+  });
+
+  const target = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  if (target) {
+    target.icDuplicates = matches;
+  }
+}
+
 // 1. STATE ADMIN: PENDING QUEUE
 function renderStatePendingView() {
   const pending = (currentData.records || []).filter(r => r.stateStatus === 'PENDING');
@@ -661,17 +835,18 @@ function renderStatePendingView() {
         ` : ''}
 
         <div class="row g-2 mb-3">
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName || '-'}</span></div></div>
+          <div class="col-md-7">${renderEditableCell(r, 'fullName', 'Full Name', true)}</div>
           <div class="col-md-5">
-            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo || '-'}</div></div>
-              <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
+            <div class="d-flex gap-2">
+              <div class="flex-grow-1">${renderEditableCell(r, 'icNo', 'IC No', true)}</div>
+              <div class="align-self-center pt-3">${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
             </div>
           </div>
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
-          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
-          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">BirthDate (YYYY-MM-DD)</span><span class="cell-content">${r.dob || '-'}</span></div></div>
-          <div class="col-md-3"><div class="grid-cell"><span class="cell-title">Gender</span><span class="cell-content">${r.sex || '-'}</span></div></div>
+          <div class="col-md-4">${renderEditableCell(r, 'firstName', 'First Name', true)}</div>
+          <div class="col-md-4">${renderEditableCell(r, 'lastName', 'Last Name', true)}</div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
+          <div class="col-md-4">${renderEditableCell(r, 'dob', 'BirthDate (YYYY-MM-DD)', true)}</div>
+          <div class="col-md-3">${renderEditableCell(r, 'sex', 'Gender', true)}</div>
           <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
@@ -730,6 +905,7 @@ function renderStateHistoryView() {
 
   list.forEach(r => {
     const isRoApproved = (r.roStatus === 'APPROVED');
+    const canEdit = !isRoApproved;
 
     html += `
     <div class="record-card" id="card-${r.rowIndex}">
@@ -745,13 +921,15 @@ function renderStateHistoryView() {
 
       <div class="record-details d-none" id="details-${r.rowIndex}">
         <div class="row g-2 mb-2">
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName}</span></div></div>
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">IC No</span><span class="cell-content">${r.icNo}</span></div></div>
-          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">DOB</span><span class="cell-content">${r.dob}</span></div></div>
-          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">Gender</span><span class="cell-content">${r.sex}</span></div></div>
+          <div class="col-md-6">${renderEditableCell(r, 'fullName', 'Full Name', canEdit)}</div>
+          <div class="col-md-6">${renderEditableCell(r, 'icNo', 'IC No', canEdit)}</div>
+          <div class="col-md-3">${renderEditableCell(r, 'firstName', 'First Name', canEdit)}</div>
+          <div class="col-md-3">${renderEditableCell(r, 'lastName', 'Last Name', canEdit)}</div>
+          <div class="col-md-3">${renderEditableCell(r, 'dob', 'DOB', canEdit)}</div>
+          <div class="col-md-3">${renderEditableCell(r, 'sex', 'Gender', canEdit)}</div>
           <div class="col-md-4"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile}</span></div></div>
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email}</span></div></div>
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address}</span></div></div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email}</span></div></div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Reviewer</span><span class="cell-content">${r.stateReviewer || 'N/A'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Action Timestamp</span><span class="cell-content">${r.stateActionTime || 'N/A'}</span></div></div>
           <div class="col-12"><div class="grid-cell"><span class="cell-title">State Remarks</span><span class="cell-content text-muted">${r.stateRemarks || 'None recorded'}</span></div></div>
@@ -781,7 +959,7 @@ function renderStateHistoryView() {
   document.getElementById('content-container').innerHTML = html;
 }
 
-// 3. RATING OFFICER: PENDING STATE APPROVAL (WITH PRE-CHECK PAYMENT FEATURE)
+// 3. RATING OFFICER: PENDING STATE APPROVAL (WITH PRE-CHECK PAYMENT & EDITABLE CELLS)
 function setRoPendingStateFilter(filterVal) {
   roPendingStateFilter = filterVal;
   renderRoPendingStateView();
@@ -795,11 +973,9 @@ function renderRoPendingStateView() {
     return;
   }
 
-  // Calculate quick stats
   const uncheckedCount = allPendingState.filter(r => !cleanKey(r.transactionNo)).length;
   const precheckedCount = allPendingState.length - uncheckedCount;
 
-  // Apply filter
   let filtered = allPendingState;
   if (roPendingStateFilter === 'UNCHECKED') {
     filtered = filtered.filter(r => !cleanKey(r.transactionNo));
@@ -807,7 +983,6 @@ function renderRoPendingStateView() {
     filtered = filtered.filter(r => Boolean(cleanKey(r.transactionNo)));
   }
 
-  // Apply search
   if (roPendingStateSearch.trim()) {
     const q = roPendingStateSearch.trim().toLowerCase();
     filtered = filtered.filter(r => 
@@ -818,7 +993,6 @@ function renderRoPendingStateView() {
   }
 
   let html = `
-    <!-- Top Filter Bar -->
     <div class="card p-3 mb-3 shadow-sm bg-white border">
       <div class="row g-2 align-items-center">
         <div class="col-md-5">
@@ -882,22 +1056,22 @@ function renderRoPendingStateView() {
         ` : ''}
 
         <div class="row g-2 mb-3">
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName || '-'}</span></div></div>
+          <div class="col-md-7">${renderEditableCell(r, 'fullName', 'Full Name', true)}</div>
           <div class="col-md-5">
-            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo || '-'}</div></div>
-              <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
+            <div class="d-flex gap-2">
+              <div class="flex-grow-1">${renderEditableCell(r, 'icNo', 'IC No', true)}</div>
+              <div class="align-self-center pt-3">${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
             </div>
           </div>
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
-          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
-          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">BirthDate (YYYY-MM-DD)</span><span class="cell-content">${r.dob || '-'}</span></div></div>
-          <div class="col-md-3"><div class="grid-cell"><span class="cell-title">Gender</span><span class="cell-content">${r.sex || '-'}</span></div></div>
+          <div class="col-md-4">${renderEditableCell(r, 'firstName', 'First Name', true)}</div>
+          <div class="col-md-4">${renderEditableCell(r, 'lastName', 'Last Name', true)}</div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
+          <div class="col-md-4">${renderEditableCell(r, 'dob', 'BirthDate (YYYY-MM-DD)', true)}</div>
+          <div class="col-md-3">${renderEditableCell(r, 'sex', 'Gender', true)}</div>
           <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
           
-          <!-- Attachment Inspectors -->
           <div class="col-md-6">
             <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
               <div><span class="cell-title">Payment Proof</span><div class="cell-content">Receipt Attachment</div></div>
@@ -992,17 +1166,18 @@ function renderRoPendingView() {
         ` : ''}
 
         <div class="row g-2 mb-3">
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName || '-'}</span></div></div>
+          <div class="col-md-7">${renderEditableCell(r, 'fullName', 'Full Name', true)}</div>
           <div class="col-md-5">
-            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo || '-'}</div></div>
-              <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
+            <div class="d-flex gap-2">
+              <div class="flex-grow-1">${renderEditableCell(r, 'icNo', 'IC No', true)}</div>
+              <div class="align-self-center pt-3">${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
             </div>
           </div>
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
-          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
-          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">BirthDate (YYYY-MM-DD)</span><span class="cell-content">${r.dob || '-'}</span></div></div>
-          <div class="col-md-3"><div class="grid-cell"><span class="cell-title">Gender</span><span class="cell-content">${r.sex || '-'}</span></div></div>
+          <div class="col-md-4">${renderEditableCell(r, 'firstName', 'First Name', true)}</div>
+          <div class="col-md-4">${renderEditableCell(r, 'lastName', 'Last Name', true)}</div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
+          <div class="col-md-4">${renderEditableCell(r, 'dob', 'BirthDate (YYYY-MM-DD)', true)}</div>
+          <div class="col-md-3">${renderEditableCell(r, 'sex', 'Gender', true)}</div>
           <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
@@ -1021,7 +1196,6 @@ function renderRoPendingView() {
           <div class="row g-2 mb-2">
             <div class="col-md-6">
               <label class="form-label fw-semibold">Payment Transaction No <span class="text-danger">*</span></label>
-              <!-- Auto-populated from pre-check if entered earlier -->
               <input type="text" id="tx-${r.rowIndex}" class="form-control" placeholder="Enter reference no" value="${r.transactionNo || ''}" oninput="checkLiveTxDuplicate(${r.rowIndex})">
               <div id="tx-warn-${r.rowIndex}" class="alert alert-warning py-1 px-2 mt-2 small d-none"></div>
             </div>
@@ -1069,17 +1243,18 @@ function renderRoAssignmentView() {
 
       <div class="record-details d-none" id="details-${r.rowIndex}">
         <div class="row g-2 mb-3">
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName || '-'}</span></div></div>
+          <div class="col-md-7">${renderEditableCell(r, 'fullName', 'Full Name', true)}</div>
           <div class="col-md-5">
-            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo || '-'}</div></div>
-              <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
+            <div class="d-flex gap-2">
+              <div class="flex-grow-1">${renderEditableCell(r, 'icNo', 'IC No', true)}</div>
+              <div class="align-self-center pt-3">${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
             </div>
           </div>
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
-          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
-          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">BirthDate (YYYY-MM-DD)</span><span class="cell-content">${r.dob || '-'}</span></div></div>
-          <div class="col-md-3"><div class="grid-cell"><span class="cell-title">Gender</span><span class="cell-content">${r.sex || '-'}</span></div></div>
+          <div class="col-md-4">${renderEditableCell(r, 'firstName', 'First Name', true)}</div>
+          <div class="col-md-4">${renderEditableCell(r, 'lastName', 'Last Name', true)}</div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
+          <div class="col-md-4">${renderEditableCell(r, 'dob', 'BirthDate (YYYY-MM-DD)', true)}</div>
+          <div class="col-md-3">${renderEditableCell(r, 'sex', 'Gender', true)}</div>
           <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
@@ -1347,7 +1522,6 @@ function submitPrecheckTx(rowIndex) {
     }
   }
 
-  // Update in-memory data
   const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
   if (idx !== -1) {
     currentData.records[idx].transactionNo = tx;
