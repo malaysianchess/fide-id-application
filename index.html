@@ -16,9 +16,39 @@
     .main-wrapper {
       flex: 1 0 auto;
     }
+    
+    /* Application Notice Header Banner */
+    .apply-banner-card {
+      max-width: 680px;
+      margin: 32px auto 0 auto;
+      border-radius: 12px;
+      border: 1px solid #b6d4fe;
+      background: linear-gradient(135deg, #e7f1ff, #f8fafd);
+      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);
+    }
+    .btn-apply-cta {
+      background-color: #0d6efd;
+      color: #ffffff;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 10px 22px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+    }
+    .btn-apply-cta:hover {
+      background-color: #0b5ed7;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
+    }
+
     .search-card {
       max-width: 680px;
-      margin: 40px auto 20px auto;
+      margin: 16px auto 20px auto;
       border-radius: 12px;
       border: 1px solid #e3e6ea;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
@@ -162,7 +192,31 @@
 <body>
 
 <div class="main-wrapper container">
-  <!-- Search Card -->
+
+  <!-- 1. NEW APPLICANT CALL-TO-ACTION BANNER -->
+  <div class="apply-banner-card p-3 p-md-4">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-primary px-2 py-1">New Registration</span>
+          <h6 class="fw-bold mb-0 text-dark">Need a new FIDE ID?</h6>
+        </div>
+        <p class="text-secondary small mb-0">
+          Submit your official player registration through this Form.
+        </p>
+      </div>
+      <div>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfHMVbq1tlGSlvfXDOJsqn6qoPjLlHLuTPP0eZ0eMiu3Wa7zg/viewform" 
+           target="_blank" 
+           rel="noopener noreferrer" 
+           class="btn-apply-cta text-nowrap">
+          <span>Apply for FIDE ID</span> ↗
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. STATUS INQUIRY CARD -->
   <div class="search-card p-4">
     <div class="d-flex justify-content-center align-items-center mb-3">
       <img src="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png" alt="MCF Logo" class="portal-logo" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/en/thumb/e/e9/Malaysian_Chess_Federation_logo.png/220px-Malaysian_Chess_Federation_logo.png';">
@@ -186,7 +240,7 @@
     <div id="search-alert" class="alert d-none mt-3 small"></div>
   </div>
 
-  <!-- Results Section -->
+  <!-- 3. RESULTS CONTAINER -->
   <div id="results-container" class="mx-auto" style="max-width: 680px;"></div>
 </div>
 
@@ -200,7 +254,7 @@
       <div class="col-md-6 text-md-end small">
         <a href="https://ratings.fide.com" target="_blank" rel="noopener noreferrer">FIDE Ratings Portal</a> &nbsp;|&nbsp; 
         <a href="https://malaysiachess.org" target="_blank" rel="noopener noreferrer">Official MCF Website</a> &nbsp;|&nbsp;
-        <a href="admin.html" class="text-decoration-none fw-bold text-secondary">Admin Portal</a>
+        <a href="admin.html" class="text-decoration-none fw-bold text-secondary">🔒 Admin Portal</a>
         <div class="text-muted mt-1">&copy; 2026 Malaysian Chess Federation. All Rights Reserved.</div>
       </div>
     </div>
@@ -208,66 +262,83 @@
 </footer>
 
 <script>
-// >>>>> PASTE YOUR ACTUAL APPS SCRIPT WEB APP URL HERE <<<<<
+// Cloudflare Worker Proxy Endpoint
 const SCRIPT_URL = "https://fide-id-app.mcf-ratings.workers.dev/";
 
 function handleSearch(e) {
   e.preventDefault();
-  const ic = document.getElementById('ic-input').value.trim();
+  
+  // Clean input to avoid mobile dash/space encoding bugs
+  const rawInput = document.getElementById('ic-input').value || '';
+  const ic = rawInput.replace(/[^a-zA-Z0-9]/g, '');
+
   const btn = document.getElementById('btn-search');
   const alertBox = document.getElementById('search-alert');
   const resultsBox = document.getElementById('results-container');
+
+  if (!ic || ic.length < 6) {
+    alertBox.className = "alert alert-warning mt-3 small";
+    alertBox.innerHTML = "Please enter a valid IC number (at least 6 digits).";
+    return;
+  }
 
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Searching...`;
   alertBox.className = "alert d-none mt-3 small";
   resultsBox.innerHTML = '';
 
-  // Generate unique JSONP callback function
-  const callbackName = 'mcfCallback_' + Math.round(100000 * Math.random());
+  const callbackName = 'mcfCb_' + Date.now();
+  let completed = false;
 
-  const timeoutId = setTimeout(() => {
+  function cleanup() {
+    completed = true;
+    try { delete window[callbackName]; } catch(e) { window[callbackName] = undefined; }
+    const el = document.getElementById(callbackName);
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  const timer = setTimeout(() => {
+    if (completed) return;
     cleanup();
     btn.disabled = false;
     btn.innerHTML = "Search Status";
     alertBox.className = "alert alert-danger mt-3 small";
-    alertBox.innerHTML = "Request timed out. Please check your internet connection and try again.";
+    alertBox.innerHTML = "Request timed out. Please check your internet connection.";
   }, 15000);
 
-  function cleanup() {
-    clearTimeout(timeoutId);
-    delete window[callbackName];
-    const scriptEl = document.getElementById(callbackName);
-    if (scriptEl) scriptEl.remove();
-  }
-
   window[callbackName] = function(data) {
+    clearTimeout(timer);
     cleanup();
     btn.disabled = false;
     btn.innerHTML = "Search Status";
 
-    if (!data.success) {
+    if (!data || !data.success) {
       alertBox.className = "alert alert-warning mt-3 small";
-      alertBox.innerHTML = data.message || data.error || "No record found.";
+      alertBox.innerHTML = (data && (data.message || data.error)) || "No registration records found for this IC Number.";
       return;
     }
 
     renderResults(data.results);
   };
 
-  // JSONP injection: completely immune to CORS, iframe sandboxes, and Google redirects
   const script = document.createElement('script');
   script.id = callbackName;
-  script.src = `${SCRIPT_URL}?action=checkPublicStatus&ic=${encodeURIComponent(ic)}&callback=${callbackName}`;
+  script.type = 'text/javascript';
+  script.async = true;
+  script.crossOrigin = "anonymous";
+  script.src = `${SCRIPT_URL}?action=checkPublicStatus&ic=${encodeURIComponent(ic)}&callback=${callbackName}&_t=${Date.now()}`;
+
   script.onerror = function() {
+    if (completed) return;
+    clearTimeout(timer);
     cleanup();
     btn.disabled = false;
     btn.innerHTML = "Search Status";
     alertBox.className = "alert alert-danger mt-3 small";
-    alertBox.innerHTML = "Unable to connect to MCF database. Please verify your script URL and ensure deployment is set to 'Anyone'.";
+    alertBox.innerHTML = "Unable to connect to MCF database. Please try again later.";
   };
 
-  document.body.appendChild(script);
+  (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(script);
 }
 
 function renderResults(records) {
