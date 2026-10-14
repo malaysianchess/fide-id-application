@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Check FIDE ID Status - Malaysian Chess Federation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #f4f6f9;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+    .main-wrapper { flex: 1 0 auto; }
+    .search-card {
+      max-width: 680px;
+      margin: 40px auto 20px auto;
+      border-radius: 12px;
+      border: 1px solid #e3e6ea;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      background: #ffffff;
+    }
+    .portal-logo {
+      max-height: 50px;
+      max-width: 110px;
+      object-fit: contain;
+    }
+    .logo-divider {
+      height: 32px;
+      width: 1px;
+      background-color: #dee2e6;
+      margin: 0 14px;
+    }
+
+    /* Segmented Multi-Stage Stepper */
+    .tracker-wrapper {
+      margin: 32px 0 24px 0;
+      padding: 0 10px;
+    }
+    .tracker-steps {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      position: relative;
+    }
+    .step-col {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+      width: 90px;
+      flex-shrink: 0;
+    }
+    .step-line {
+      flex-grow: 1;
+      height: 4px;
+      background-color: #e9ecef;
+      margin-top: 18px;
+      position: relative;
+      z-index: 1;
+      transition: background-color 0.3s ease;
+    }
+    .step-line.completed { background-color: #198754; }
+    .step-line.rejected { background-color: #dc3545; }
+
+    .step-node {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      background-color: #f8f9fa;
+      color: #adb5bd;
+      border: 3px solid #dee2e6;
+      transition: all 0.3s ease;
+    }
+    .step-col.completed .step-node {
+      background-color: #198754;
+      color: #ffffff;
+      border-color: #198754;
+      box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.15);
+    }
+    .step-col.active .step-node {
+      background-color: #0d6efd;
+      color: #ffffff;
+      border-color: #0d6efd;
+      box-shadow: 0 0 0 5px rgba(13, 110, 253, 0.22);
+      animation: pulse-ring 1.8s infinite;
+    }
+    .step-col.rejected .step-node {
+      background-color: #dc3545;
+      color: #ffffff;
+      border-color: #dc3545;
+      box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.2);
+    }
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.4); }
+      50% { box-shadow: 0 0 0 7px rgba(13, 110, 253, 0.1); }
+      100% { box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.4); }
+    }
+    .step-title {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #6c757d;
+      line-height: 1.25;
+    }
+    .step-col.completed .step-title,
+    .step-col.active .step-title { color: #212529; }
+    .step-col.rejected .step-title { color: #dc3545; }
+    .step-subtext {
+      font-size: 0.7rem;
+      color: #8c98a4;
+      margin-top: 2px;
+    }
+    .fide-badge-card {
+      background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+      color: #ffffff;
+      border-radius: 10px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 4px 14px rgba(13, 110, 253, 0.25);
+      margin-top: 20px;
+    }
+    .portal-footer {
+      flex-shrink: 0;
+      background-color: #ffffff;
+      border-top: 1px solid #e3e6ea;
+      padding: 24px 0 16px 0;
+      color: #6c757d;
+      font-size: 0.85rem;
+    }
+    .portal-footer a {
+      color: #495057;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .portal-footer a:hover {
+      color: #0d6efd;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<div class="main-wrapper container">
+  <!-- Search Card -->
+  <div class="search-card p-4">
+    <div class="d-flex justify-content-center align-items-center mb-3">
+      <img src="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png" alt="MCF Logo" class="portal-logo" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/en/thumb/e/e9/Malaysian_Chess_Federation_logo.png/220px-Malaysian_Chess_Federation_logo.png';">
+      <div class="logo-divider"></div>
+      <img src="https://i.postimg.cc/sDW16LMV/FIDE-LOGO.png" alt="FIDE Logo" class="portal-logo" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Fide_logo.png/320px-Fide_logo.png';">
+    </div>
+
+    <h4 class="text-center fw-bold mb-1">Check FIDE ID Status</h4>
+    <p class="text-center text-muted small mb-4">Malaysian Chess Federation (MCF) Public Inquiry</p>
+
+    <form onsubmit="handleSearch(event)">
+      <div class="mb-3">
+        <label class="form-label small fw-semibold text-secondary">IC / Identification No (with or without dashes)</label>
+        <div class="input-group input-group-lg">
+          <input type="text" id="ic-input" class="form-control fs-6" placeholder="e.g. 050312-14-0303 or 050312140303" required autocomplete="off">
+          <button type="submit" id="btn-search" class="btn btn-primary fw-semibold px-4">Search Status</button>
+        </div>
+      </div>
+    </form>
+
+    <div id="search-alert" class="alert d-none mt-3 small"></div>
+  </div>
+
+  <!-- Results Section -->
+  <div id="results-container" class="mx-auto" style="max-width: 680px;"></div>
+</div>
+
+<footer class="portal-footer mt-5">
+  <div class="container text-center">
+    <div class="row align-items-center">
+      <div class="col-md-6 text-md-start mb-2 mb-md-0">
+        <strong>Malaysian Chess Federation</strong> (Persekutuan Catur Malaysia)<br>
+        <span class="small">National Governing Body for Chess in Malaysia • Affiliated with FIDE</span>
+      </div>
+      <div class="col-md-6 text-md-end small">
+        <a href="https://ratings.fide.com" target="_blank" rel="noopener noreferrer">FIDE Ratings Portal</a> &nbsp;|&nbsp; 
+        <a href="https://malaysiachess.org" target="_blank" rel="noopener noreferrer">Official MCF Website</a>
+        <div class="text-muted mt-1">&copy; 2026 Malaysian Chess Federation. All Rights Reserved.</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// >>>>> REPLACE WITH YOUR APPS SCRIPT WEB APP URL HERE <<<<<
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeGB_EjrqjntXqllfmE_S1R1bZoYW6D4u3P6bealKINBz24wqhBP20plmOLqao2O6-/exec";
+
+async function handleSearch(e) {
+  e.preventDefault();
+  const ic = document.getElementById('ic-input').value.trim();
+  const btn = document.getElementById('btn-search');
+  const alertBox = document.getElementById('search-alert');
+  const resultsBox = document.getElementById('results-container');
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Searching...`;
+  alertBox.className = "alert d-none mt-3 small";
+  resultsBox.innerHTML = '';
+
+  try {
+    const res = await fetch(`${SCRIPT_URL}?action=checkPublicStatus&ic=${encodeURIComponent(ic)}`);
+    const data = await res.json();
+
+    btn.disabled = false;
+    btn.innerHTML = "Search Status";
+
+    if (!data.success) {
+      alertBox.className = "alert alert-warning mt-3 small";
+      alertBox.innerHTML = data.message || data.error || "No record found.";
+      return;
+    }
+
+    renderResults(data.results);
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = "Search Status";
+    alertBox.className = "alert alert-danger mt-3 small";
+    alertBox.innerHTML = "Connection error: Unable to retrieve records. Please try again later.";
+  }
+}
+
+function renderResults(records) {
+  const container = document.getElementById('results-container');
+  let html = '';
+
+  records.forEach((r) => {
+    const isStateApproved = (r.stateStatus === 'APPROVED');
+    const isStateRejected = (r.stateStatus === 'REJECTED');
+    
+    const isRoApproved = (r.roStatus === 'APPROVED');
+    const isRoRejected = (r.roStatus === 'REJECTED');
+    
+    const isFideAssigned = (r.fideIdStatus === 'ASSIGNED' && Boolean(r.assignedFideId));
+    const isAnyRejected = isStateRejected || isRoRejected;
+
+    let s1 = 'completed';
+    let s2 = 'upcoming';
+    let s3 = 'upcoming';
+    let s4 = 'upcoming';
+
+    let line1 = '';
+    let line2 = '';
+    let line3 = '';
+
+    // Stage 1 -> Stage 2
+    if (isStateRejected) {
+      s2 = 'rejected';
+      line1 = 'rejected';
+    } else if (isStateApproved) {
+      s2 = 'completed';
+      line1 = 'completed';
+    } else {
+      s2 = 'active';
+      line1 = 'completed';
+    }
+
+    // Stage 2 -> Stage 3
+    if (isStateApproved) {
+      if (isRoRejected) {
+        s3 = 'rejected';
+        line2 = 'rejected';
+      } else if (isRoApproved) {
+        s3 = 'completed';
+        line2 = 'completed';
+      } else {
+        s3 = 'active';
+      }
+    }
+
+    // Stage 3 -> Stage 4
+    if (isRoApproved) {
+      if (isFideAssigned) {
+        s4 = 'completed';
+        line3 = 'completed';
+      } else {
+        s4 = 'active';
+      }
+    }
+
+    html += `
+    <div class="card p-4 mb-3 shadow-sm bg-white">
+      <div class="d-flex justify-content-between align-items-start border-bottom pb-3 flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold mb-1 text-dark">${r.maskedName}</h5>
+          <div class="small text-muted">
+            IC: <code class="text-dark fw-bold">${r.maskedIc}</code> &bull; 
+            State: <strong>${r.state}</strong> &bull; 
+            Submitted: <span>${r.submissionDate}</span>
+          </div>
+        </div>
+        <span class="badge ${isFideAssigned ? 'bg-success' : (isAnyRejected ? 'bg-danger' : 'bg-primary')} px-3 py-2 fs-6">
+          ${isFideAssigned ? 'FIDE ID Assigned' : (isAnyRejected ? 'Application Rejected' : 'In Progress')}
+        </span>
+      </div>
+
+      <!-- Segmented 4-Stage Visual Stepper -->
+      <div class="tracker-wrapper">
+        <div class="tracker-steps">
+          <div class="step-col ${s1}">
+            <div class="step-node">&#10003;</div>
+            <div class="step-title">Submitted</div>
+            <div class="step-subtext">Received</div>
+          </div>
+          <div class="step-line ${line1}"></div>
+          <div class="step-col ${s2}">
+            <div class="step-node">
+              ${s2 === 'completed' ? '&#10003;' : (s2 === 'rejected' ? '&times;' : '2')}
+            </div>
+            <div class="step-title">State Review</div>
+            <div class="step-subtext">
+              ${s2 === 'completed' ? 'Endorsed' : (s2 === 'rejected' ? 'Rejected' : (s2 === 'active' ? 'Under Review' : 'Pending'))}
+            </div>
+          </div>
+          <div class="step-line ${line2}"></div>
+          <div class="step-col ${s3}">
+            <div class="step-node">
+              ${s3 === 'completed' ? '&#10003;' : (s3 === 'rejected' ? '&times;' : '3')}
+            </div>
+            <div class="step-title">Rating Officer Review</div>
+            <div class="step-subtext">
+              ${s3 === 'completed' ? 'Verified' : (s3 === 'rejected' ? 'Rejected' : (s3 === 'active' ? 'Payment Check' : 'Upcoming'))}
+            </div>
+          </div>
+          <div class="step-line ${line3}"></div>
+          <div class="step-col ${s4}">
+            <div class="step-node">
+              ${s4 === 'completed' ? '&#10003;' : '4'}
+            </div>
+            <div class="step-title">FIDE ID Assigned</div>
+            <div class="step-subtext">
+              ${s4 === 'completed' ? 'Generated' : (s4 === 'active' ? 'Pending Upload' : 'Final Step')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      ${isFideAssigned ? `
+        <div class="fide-badge-card">
+          <small class="text-uppercase tracking-wider opacity-75 d-block">Official Assigned FIDE ID</small>
+          <div class="display-6 fw-bold my-1 tracking-wide">${r.assignedFideId}</div>
+          <a href="https://ratings.fide.com/profile/${r.assignedFideId}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light fw-bold text-primary mt-2 px-3">
+            Open Official FIDE Ratings Profile ↗
+          </a>
+        </div>
+      ` : ''}
+
+      ${isAnyRejected ? `
+        <div class="alert alert-danger p-3 mt-2 mb-0 small">
+          <strong>⛔ Application Status Notice:</strong><br>
+          ${r.publicNote || 'Your application was rejected during verification. Please contact your State Chess Association or the MCF Secretariat for assistance.'}
+        </div>
+      ` : ''}
+
+      ${!isFideAssigned && !isAnyRejected ? `
+        <div class="alert alert-light border p-3 mt-2 mb-0 small text-center text-secondary">
+          <strong>Current Status:</strong> Your application is actively progressing through the verification pipeline. Once approved by the Rating Officer, your FIDE ID will be displayed here.
+        </div>
+      ` : ''}
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+</script>
+</body>
+</html>
