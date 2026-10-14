@@ -112,6 +112,14 @@
       border-radius: 4px;
       font-size: 0.8rem;
     }
+    .badge-precheck {
+      background-color: #198754;
+      color: #fff;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
     .status-badge {
       font-size: 0.8rem;
       padding: 4px 8px;
@@ -340,6 +348,10 @@ let currentStateFilter = 'ALL';
 let currentSearch = '';
 let masterCurrentPage = 1;
 
+// Rating Officer Pending State Filters
+let roPendingStateFilter = 'ALL'; // 'ALL', 'UNCHECKED', 'PRECHECKED'
+let roPendingStateSearch = '';
+
 window.onload = function() {
   const token = getToken();
   if (token) {
@@ -542,6 +554,8 @@ function switchTab(tab) {
   currentFilter = 'ALL';
   currentStateFilter = 'ALL';
   currentSearch = '';
+  roPendingStateFilter = 'ALL';
+  roPendingStateSearch = '';
   masterCurrentPage = 1;
   renderNavTabs(currentData.user.role);
   routeView();
@@ -767,21 +781,79 @@ function renderStateHistoryView() {
   document.getElementById('content-container').innerHTML = html;
 }
 
-// 3. RATING OFFICER: PENDING STATE APPROVAL
+// 3. RATING OFFICER: PENDING STATE APPROVAL (WITH PRE-CHECK PAYMENT FEATURE)
+function setRoPendingStateFilter(filterVal) {
+  roPendingStateFilter = filterVal;
+  renderRoPendingStateView();
+}
+
 function renderRoPendingStateView() {
-  const pendingState = (currentData.records || []).filter(r => r.stateStatus === 'PENDING');
-  if (!pendingState.length) {
+  const allPendingState = (currentData.records || []).filter(r => r.stateStatus === 'PENDING');
+  if (!allPendingState.length) {
     document.getElementById('content-container').innerHTML = 
       `<div class="alert alert-success">No applications currently pending State approval across Malaysia.</div>`;
     return;
   }
 
-  let html = `<div class="mb-3 text-muted small">Applications across all states pending State Admin review:</div>`;
+  // Calculate quick stats
+  const uncheckedCount = allPendingState.filter(r => !cleanKey(r.transactionNo)).length;
+  const precheckedCount = allPendingState.length - uncheckedCount;
 
-  pendingState.forEach(r => {
+  // Apply filter
+  let filtered = allPendingState;
+  if (roPendingStateFilter === 'UNCHECKED') {
+    filtered = filtered.filter(r => !cleanKey(r.transactionNo));
+  } else if (roPendingStateFilter === 'PRECHECKED') {
+    filtered = filtered.filter(r => Boolean(cleanKey(r.transactionNo)));
+  }
+
+  // Apply search
+  if (roPendingStateSearch.trim()) {
+    const q = roPendingStateSearch.trim().toLowerCase();
+    filtered = filtered.filter(r => 
+      (r.fullName && r.fullName.toLowerCase().includes(q)) || 
+      (r.icNo && cleanKey(r.icNo).includes(cleanKey(q))) ||
+      (r.state && r.state.toLowerCase().includes(q))
+    );
+  }
+
+  let html = `
+    <!-- Top Filter Bar -->
+    <div class="card p-3 mb-3 shadow-sm bg-white border">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-5">
+          <input type="text" class="form-control form-control-sm" placeholder="Search name, IC, or state..." value="${roPendingStateSearch}" oninput="roPendingStateSearch=this.value; renderRoPendingStateView();">
+        </div>
+        <div class="col-md-7 text-md-end">
+          <div class="btn-group btn-group-sm">
+            <button class="btn ${roPendingStateFilter === 'ALL' ? 'btn-primary' : 'btn-outline-primary'}" onclick="setRoPendingStateFilter('ALL')">
+              All (${allPendingState.length})
+            </button>
+            <button class="btn ${roPendingStateFilter === 'UNCHECKED' ? 'btn-warning text-dark fw-semibold' : 'btn-outline-warning text-dark'}" onclick="setRoPendingStateFilter('UNCHECKED')">
+              ⚠️ Needs Pre-check (${uncheckedCount})
+            </button>
+            <button class="btn ${roPendingStateFilter === 'PRECHECKED' ? 'btn-success' : 'btn-outline-success'}" onclick="setRoPendingStateFilter('PRECHECKED')">
+              ✔️ Pre-checked (${precheckedCount})
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (!filtered.length) {
+    html += `<div class="alert alert-info">No applications match the selected filter.</div>`;
+    document.getElementById('content-container').innerHTML = html;
+    return;
+  }
+
+  html += `<div class="mb-3 text-muted small">Showing <strong>${filtered.length}</strong> applications:</div>`;
+
+  filtered.forEach(r => {
     const isAging = isOlderThan7Days(r.timestamp);
     const icDupes = findIcDuplicates(r);
     const hasDupe = icDupes.length > 0;
+    const hasPrecheckTx = Boolean(r.transactionNo && cleanKey(r.transactionNo));
 
     html += `
     <div class="record-card ${isAging ? 'card-aging' : ''} ${hasDupe ? 'border-danger' : ''}" id="card-${r.rowIndex}">
@@ -789,6 +861,7 @@ function renderRoPendingStateView() {
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="badge badge-state me-1">${r.state}</span>
+          ${hasPrecheckTx ? '<span class="badge badge-precheck me-1">✔️ Pre-checked Tx</span>' : '<span class="badge bg-secondary opacity-75 me-1">No Tx Pre-check</span>'}
           ${isAging ? '<span class="badge badge-aging me-1">⏰ Applied > 7 Days Ago</span>' : ''}
           ${hasDupe ? '<span class="badge badge-duplicate me-1">⚠️ Possible IC Duplicate</span>' : ''}
           <div class="text-muted small mt-1">Submitted: <strong>${r.timestamp || 'N/A'}</strong> | IC: ${r.icNo}</div>
@@ -823,10 +896,46 @@ function renderRoPendingStateView() {
           <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
+          
+          <!-- Attachment Inspectors -->
+          <div class="col-md-6">
+            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
+              <div><span class="cell-title">Payment Proof</span><div class="cell-content">Receipt Attachment</div></div>
+              <div>${r.paymentUrl ? `<button type="button" class="btn btn-sm btn-success py-1" onclick="openDocViewer('${r.paymentUrl}', 'Payment Receipt:${r.fullName.replace(/'/g, "\\'")}')">Inspect Receipt 🧾</button>` : '<span class="text-danger small">No Receipt</span>'}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="grid-cell"><span class="cell-title">Saved Tx No</span><span class="cell-content text-primary"><code>${r.transactionNo || 'None yet'}</code></span></div>
+          </div>
         </div>
 
-        <hr class="my-3">
+        <!-- 1. RO PRE-CHECK PAYMENT BLOCK -->
+        <div class="bg-white p-3 border rounded mb-3" style="background-color: #f0f7ff !important;">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h6 class="fw-bold text-primary mb-0">⚡ Pre-Check & Enter Payment Details</h6>
+            <span class="badge bg-light text-secondary border">Optional Early Step</span>
+          </div>
+          <p class="small text-muted mb-2">You can pre-enter and verify the transaction number now. When the State approves, this transaction number will be auto-loaded into Payment & Verification for instant approval.</p>
+          
+          <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold">Payment Transaction No</label>
+              <input type="text" id="tx-${r.rowIndex}" class="form-control form-control-sm" placeholder="Enter bank reference no" value="${r.transactionNo || ''}" oninput="checkLiveTxDuplicate(${r.rowIndex})">
+              <div id="tx-warn-${r.rowIndex}" class="alert alert-warning py-1 px-2 mt-2 small d-none"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">RO Remarks (optional)</label>
+              <input type="text" id="rorem-${r.rowIndex}" class="form-control form-control-sm" placeholder="e.g. Receipt verified" value="${r.roRemarks || ''}">
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-primary btn-sm w-100" type="button" onclick="submitPrecheckTx(${r.rowIndex})">
+                Save Pre-check 💾
+              </button>
+            </div>
+          </div>
+        </div>
 
+        <!-- 2. EMERGENCY ACTION ON BEHALF OF STATE -->
         <div class="bg-white p-3 border rounded">
           <h6 class="fw-bold text-secondary mb-1">Action on Behalf of State</h6>
           <p class="small text-muted mb-2">Rating Officer may approve or reject on behalf of ${r.state}:</p>
@@ -857,6 +966,7 @@ function renderRoPendingView() {
   pending.forEach(r => {
     const icDupes = findIcDuplicates(r);
     const hasDupe = icDupes.length > 0;
+    const isPrechecked = Boolean(r.transactionNo && cleanKey(r.transactionNo));
 
     html += `
     <div class="record-card ${hasDupe ? 'border-danger' : ''}" id="card-${r.rowIndex}">
@@ -864,6 +974,7 @@ function renderRoPendingView() {
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="badge badge-state">${r.state}</span>
+          ${isPrechecked ? '<span class="badge badge-precheck ms-1">✔️ Pre-checked Tx Available</span>' : ''}
           ${hasDupe ? '<span class="badge badge-duplicate ms-1">⚠️ IC Duplicate</span>' : ''}
           <div class="text-muted small mt-1">State OK: ${r.stateActionTime || 'N/A'} | IC: ${r.icNo}</div>
         </div>
@@ -910,12 +1021,13 @@ function renderRoPendingView() {
           <div class="row g-2 mb-2">
             <div class="col-md-6">
               <label class="form-label fw-semibold">Payment Transaction No <span class="text-danger">*</span></label>
-              <input type="text" id="tx-${r.rowIndex}" class="form-control" placeholder="Enter reference no" oninput="checkLiveTxDuplicate(${r.rowIndex})">
+              <!-- Auto-populated from pre-check if entered earlier -->
+              <input type="text" id="tx-${r.rowIndex}" class="form-control" placeholder="Enter reference no" value="${r.transactionNo || ''}" oninput="checkLiveTxDuplicate(${r.rowIndex})">
               <div id="tx-warn-${r.rowIndex}" class="alert alert-warning py-1 px-2 mt-2 small d-none"></div>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Rating Officer Remarks</label>
-              <input type="text" id="rorem-${r.rowIndex}" class="form-control" placeholder="Remarks (optional)">
+              <input type="text" id="rorem-${r.rowIndex}" class="form-control" placeholder="Remarks (optional)" value="${r.roRemarks || ''}">
             </div>
           </div>
           
@@ -1211,7 +1323,66 @@ function executeMasterSearch(page) {
   });
 }
 
-// 7. ACTION HANDLERS
+// ==========================================
+// ACTION DISPATCHERS
+// ==========================================
+
+// RO PRE-CHECK TRANSACTION HANDLER
+function submitPrecheckTx(rowIndex) {
+  const token = getToken();
+  const tx = document.getElementById(`tx-${rowIndex}`).value.trim();
+  const remarks = document.getElementById(`rorem-${rowIndex}`).value.trim();
+
+  if (!tx) {
+    alert("Please enter a Payment Transaction Number to pre-check.");
+    return;
+  }
+
+  const clean = cleanKey(tx);
+  const txMap = currentData.txMap || {};
+  const dupeTx = txMap[clean];
+  if (dupeTx && dupeTx.rowIndex !== rowIndex) {
+    if (!confirm(`⛔ WARNING: Transaction No "${tx}" is already registered to "${dupeTx.fullName}" (${dupeTx.state}) [${dupeTx.source || 'Active Sheet'}]!\n\nDo you still want to save this pre-check?`)) {
+      return;
+    }
+  }
+
+  // Update in-memory data
+  const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
+  if (idx !== -1) {
+    currentData.records[idx].transactionNo = tx;
+    currentData.records[idx].roRemarks = remarks;
+  }
+  currentData.txMap[clean] = {
+    rowIndex: rowIndex,
+    fullName: currentData.records.find(r => r.rowIndex === rowIndex)?.fullName || 'Applicant',
+    state: 'Active'
+  };
+
+  const btn = event.target;
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Saving...`;
+
+  callApi({
+    action: 'savePrecheckTx',
+    token: token,
+    rowIndex: rowIndex,
+    transactionNo: tx,
+    remarks: remarks
+  }, res => {
+    btn.disabled = false;
+    btn.innerHTML = `Saved! ✔️`;
+    setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+    if (!res.success) alert("Error saving pre-check: " + res.error);
+    else renderRoPendingStateView();
+  }, err => {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+    alert("Connection error: " + err.message);
+  });
+}
+
 function submitState(rowIndex, status, isDupe) {
   const token = getToken();
   const remarks = document.getElementById(`rem-${rowIndex}`).value;
