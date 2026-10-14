@@ -13,7 +13,9 @@
       display: flex;
       flex-direction: column;
     }
-    .main-wrapper { flex: 1 0 auto; }
+    .main-wrapper {
+      flex: 1 0 auto;
+    }
     .search-card {
       max-width: 680px;
       margin: 40px auto 20px auto;
@@ -64,9 +66,12 @@
       z-index: 1;
       transition: background-color 0.3s ease;
     }
-    .step-line.completed { background-color: #198754; }
-    .step-line.rejected { background-color: #dc3545; }
-
+    .step-line.completed {
+      background-color: #198754;
+    }
+    .step-line.rejected {
+      background-color: #dc3545;
+    }
     .step-node {
       width: 40px;
       height: 40px;
@@ -113,13 +118,18 @@
       line-height: 1.25;
     }
     .step-col.completed .step-title,
-    .step-col.active .step-title { color: #212529; }
-    .step-col.rejected .step-title { color: #dc3545; }
+    .step-col.active .step-title {
+      color: #212529;
+    }
+    .step-col.rejected .step-title {
+      color: #dc3545;
+    }
     .step-subtext {
       font-size: 0.7rem;
       color: #8c98a4;
       margin-top: 2px;
     }
+
     .fide-badge-card {
       background: linear-gradient(135deg, #0d6efd, #0b5ed7);
       color: #ffffff;
@@ -129,6 +139,7 @@
       box-shadow: 0 4px 14px rgba(13, 110, 253, 0.25);
       margin-top: 20px;
     }
+
     .portal-footer {
       flex-shrink: 0;
       background-color: #ffffff;
@@ -196,7 +207,7 @@
 </footer>
 
 <script>
-// >>>>> REPLACE WITH YOUR APPS SCRIPT WEB APP URL HERE <<<<<
+// >>>>> PASTE YOUR ACTUAL APPS SCRIPT WEB APP URL HERE <<<<<
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeGB_EjrqjntXqllfmE_S1R1bZoYW6D4u3P6bealKINBz24wqhBP20plmOLqao2O6-/exec";
 
 function handleSearch(e) {
@@ -211,16 +222,15 @@ function handleSearch(e) {
   alertBox.className = "alert d-none mt-3 small";
   resultsBox.innerHTML = '';
 
-  // Generate a unique callback function name
+  // Generate unique JSONP callback function
   const callbackName = 'mcfCallback_' + Math.round(100000 * Math.random());
 
-  // Timeout handler in case Google is slow or unreachable (15 seconds)
   const timeoutId = setTimeout(() => {
     cleanup();
     btn.disabled = false;
     btn.innerHTML = "Search Status";
     alertBox.className = "alert alert-danger mt-3 small";
-    alertBox.innerHTML = "Request timed out. Please verify your connection and try again.";
+    alertBox.innerHTML = "Request timed out. Please check your internet connection and try again.";
   }, 15000);
 
   function cleanup() {
@@ -230,7 +240,6 @@ function handleSearch(e) {
     if (scriptEl) scriptEl.remove();
   }
 
-  // Define global callback to receive Google's response
   window[callbackName] = function(data) {
     cleanup();
     btn.disabled = false;
@@ -245,7 +254,7 @@ function handleSearch(e) {
     renderResults(data.results);
   };
 
-  // Inject script tag (JSONP call - immune to CORS / redirect blocks)
+  // JSONP injection: completely immune to CORS, iframe sandboxes, and Google redirects
   const script = document.createElement('script');
   script.id = callbackName;
   script.src = `${SCRIPT_URL}?action=checkPublicStatus&ic=${encodeURIComponent(ic)}&callback=${callbackName}`;
@@ -254,7 +263,7 @@ function handleSearch(e) {
     btn.disabled = false;
     btn.innerHTML = "Search Status";
     alertBox.className = "alert alert-danger mt-3 small";
-    alertBox.innerHTML = "Connection error: Unable to retrieve records. Please ensure your deployment is set to 'Anyone'.";
+    alertBox.innerHTML = "Unable to connect to MCF database. Please verify your script URL and ensure deployment is set to 'Anyone'.";
   };
 
   document.body.appendChild(script);
@@ -283,7 +292,7 @@ function renderResults(records) {
     let line2 = '';
     let line3 = '';
 
-    // Stage 1 -> Stage 2
+    // Stage 1 -> Stage 2 (State Review)
     if (isStateRejected) {
       s2 = 'rejected';
       line1 = 'rejected';
@@ -295,7 +304,7 @@ function renderResults(records) {
       line1 = 'completed';
     }
 
-    // Stage 2 -> Stage 3
+    // Stage 2 -> Stage 3 (Rating Officer Review)
     if (isStateApproved) {
       if (isRoRejected) {
         s3 = 'rejected';
@@ -308,7 +317,7 @@ function renderResults(records) {
       }
     }
 
-    // Stage 3 -> Stage 4
+    // Stage 3 -> Stage 4 (FIDE ID Assignment)
     if (isRoApproved) {
       if (isFideAssigned) {
         s4 = 'completed';
@@ -342,7 +351,9 @@ function renderResults(records) {
             <div class="step-title">Submitted</div>
             <div class="step-subtext">Received</div>
           </div>
+
           <div class="step-line ${line1}"></div>
+
           <div class="step-col ${s2}">
             <div class="step-node">
               ${s2 === 'completed' ? '&#10003;' : (s2 === 'rejected' ? '&times;' : '2')}
@@ -352,7 +363,9 @@ function renderResults(records) {
               ${s2 === 'completed' ? 'Endorsed' : (s2 === 'rejected' ? 'Rejected' : (s2 === 'active' ? 'Under Review' : 'Pending'))}
             </div>
           </div>
+
           <div class="step-line ${line2}"></div>
+
           <div class="step-col ${s3}">
             <div class="step-node">
               ${s3 === 'completed' ? '&#10003;' : (s3 === 'rejected' ? '&times;' : '3')}
@@ -362,7 +375,9 @@ function renderResults(records) {
               ${s3 === 'completed' ? 'Verified' : (s3 === 'rejected' ? 'Rejected' : (s3 === 'active' ? 'Payment Check' : 'Upcoming'))}
             </div>
           </div>
+
           <div class="step-line ${line3}"></div>
+
           <div class="step-col ${s4}">
             <div class="step-node">
               ${s4 === 'completed' ? '&#10003;' : '4'}
