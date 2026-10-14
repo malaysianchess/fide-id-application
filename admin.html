@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Portal - Malaysian Chess Federation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body { 
+      background-color: #f4f6f9; 
+      min-height: 100vh; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      display: flex;
+      flex-direction: column;
+    }
+    .main-wrapper { flex: 1 0 auto; }
+    .card { 
+      border-radius: 8px; 
+      border: 1px solid #e3e6ea;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+    }
+    .portal-logo-login {
+      max-height: 52px;
+      max-width: 120px;
+      object-fit: contain;
+    }
+    .portal-logo-header {
+      max-height: 40px;
+      max-width: 90px;
+      object-fit: contain;
+    }
+    .logo-divider {
+      height: 32px;
+      width: 1px;
+      background-color: #dee2e6;
+      margin: 0 14px;
+    }
+    .record-card {
+      background: #ffffff;
+      border-radius: 8px;
+      border: 1px solid #dee2e6;
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .card-aging {
+      border: 2px solid #dc3545 !important;
+      background-color: #fff9f9;
+    }
+    .record-summary {
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      background-color: transparent;
+    }
+    .record-summary:hover {
+      background-color: rgba(0, 0, 0, 0.02);
+    }
+    .record-details {
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-top: 1px solid #dee2e6;
+      font-size: 0.95rem;
+    }
+    .grid-cell {
+      padding: 6px 12px;
+      margin-bottom: 6px;
+      background: #ffffff;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      min-height: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .cell-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #6c757d;
+      margin-bottom: 1px;
+    }
+    .cell-content {
+      font-weight: 600;
+      color: #212529;
+      font-size: 0.95rem;
+      word-break: break-word;
+    }
+    .badge-state {
+      background-color: #0d6efd;
+      color: #fff;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .badge-duplicate {
+      background-color: #dc3545;
+      color: #fff;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    .badge-aging {
+      background-color: #dc3545;
+      color: #fff;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    .status-badge {
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .status-pending { background-color: #ffc107; color: #000; }
+    .status-approved { background-color: #198754; color: #fff; }
+    .status-rejected { background-color: #dc3545; color: #fff; }
+    #login-box { 
+      max-width: 440px; 
+      margin: 60px auto; 
+    }
+    .portal-footer {
+      flex-shrink: 0;
+      background-color: #ffffff;
+      border-top: 1px solid #e3e6ea;
+      padding: 24px 0 16px 0;
+      color: #6c757d;
+      font-size: 0.85rem;
+      margin-top: 40px;
+    }
+    .portal-footer a {
+      color: #495057;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .portal-footer a:hover {
+      color: #0d6efd;
+      text-decoration: underline;
+    }
+
+    /* Embedded Document Viewer Panel */
+    .split-layout {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      position: relative;
+    }
+    #content-container {
+      flex: 1 1 100%;
+      min-width: 0;
+      transition: flex 0.3s ease;
+    }
+    .split-active #content-container {
+      flex: 1 1 52%;
+    }
+    #doc-viewer-pane {
+      display: none;
+      flex: 1 1 48%;
+      position: sticky;
+      top: 15px;
+      height: calc(100vh - 120px);
+      min-height: 580px;
+      background: #ffffff;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 100;
+    }
+    .split-active #doc-viewer-pane {
+      display: flex;
+    }
+    .doc-viewer-header {
+      padding: 10px 16px;
+      background-color: #212529;
+      color: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .doc-viewer-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+  <!-- 1. LOGIN SCREEN -->
+  <div id="login-section" class="container">
+    <div class="card p-4 shadow-sm" id="login-box">
+      <div class="d-flex justify-content-center align-items-center mb-3">
+        <img src="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png" alt="Malaysian Chess Federation" class="portal-logo-login">
+        <div class="logo-divider"></div>
+        <img src="https://i.postimg.cc/sDW16LMV/FIDE-LOGO.png" alt="FIDE" class="portal-logo-login">
+      </div>
+
+      <h4 class="text-center fw-bold mb-1">FIDE ID Portal</h4>
+      <p class="text-center text-muted small mb-4">Authorized Admin Sign-In</p>
+      
+      <div id="login-error" class="alert alert-danger d-none p-2 small"></div>
+
+      <form onsubmit="handleLogin(event)">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">User ID</label>
+          <input type="text" id="login-id" class="form-control" required autocomplete="username" placeholder="Enter User ID">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Password</label>
+          <input type="password" id="login-pass" class="form-control" required autocomplete="current-password" placeholder="Enter Password">
+        </div>
+        <button type="submit" id="btn-login" class="btn btn-primary w-100 fw-semibold">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. MAIN DASHBOARD -->
+  <div id="dashboard-section" class="container py-4 d-none">
+    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom flex-wrap gap-2">
+      <div class="d-flex align-items-center">
+        <img src="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png" alt="MCF Logo" class="portal-logo-header">
+        <div class="logo-divider"></div>
+        <img src="https://i.postimg.cc/sDW16LMV/FIDE-LOGO.png" alt="FIDE Logo" class="portal-logo-header me-3">
+        <div>
+          <h4 class="mb-0 fw-bold">FIDE ID Registration Portal</h4>
+          <small id="user-badge" class="text-secondary"></small>
+        </div>
+      </div>
+      <div>
+        <button class="btn btn-outline-dark btn-sm me-2" onclick="fetchDashboardData()">Refresh Data</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
+      </div>
+    </div>
+
+    <ul class="nav nav-pills mb-4" id="nav-tabs"></ul>
+
+    <!-- Split Screen Review Wrapper -->
+    <div id="split-wrapper" class="split-layout">
+      <div id="content-container"></div>
+
+      <div id="doc-viewer-pane">
+        <div class="doc-viewer-header">
+          <span class="fw-semibold small" id="doc-viewer-title">Document Inspection</span>
+          <div>
+            <a href="#" id="doc-viewer-external-btn" target="_blank" class="btn btn-sm btn-outline-light py-0 px-2 me-1 small">Open Tab ↗</a>
+            <button type="button" class="btn btn-sm btn-light py-0 px-2" onclick="closeDocViewer()">✕ Close</button>
+          </div>
+        </div>
+        <iframe id="doc-frame" class="doc-viewer-frame" src="about:blank"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="portal-footer">
+  <div class="container text-center">
+    <div class="row align-items-center">
+      <div class="col-md-6 text-md-start mb-2 mb-md-0">
+        <strong>Malaysian Chess Federation</strong> (Persekutuan Catur Malaysia)<br>
+        <span class="small">National Governing Body for Chess in Malaysia • Affiliated with FIDE</span>
+      </div>
+      <div class="col-md-6 text-md-end small">
+        <a href="index.html">Public Status Check</a> &nbsp;|&nbsp; 
+        <a href="https://malaysiachess.org" target="_blank" rel="noopener noreferrer">MCF Website</a> &nbsp;|&nbsp; 
+        <a href="https://ratings.fide.com" target="_blank" rel="noopener noreferrer">FIDE Ratings</a>
+        <div class="text-muted mt-1">&copy; 2026 Malaysian Chess Federation. All Rights Reserved.</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// >>>>> PASTE YOUR ACTUAL APPS SCRIPT WEB APP URL HERE <<<<<
+const SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+
+// ==========================================
+// UNIVERSAL JSONP REQUEST CLIENT
+// ==========================================
+function callApi(params, onSuccess, onError) {
+  const callbackName = 'mcfAdminCb_' + Math.round(1000000 * Math.random());
+  
+  const timeoutId = setTimeout(() => {
+    cleanup();
+    if (onError) onError(new Error("Request timed out. Please try again."));
+  }, 20000);
+
+  function cleanup() {
+    clearTimeout(timeoutId);
+    delete window[callbackName];
+    const scriptEl = document.getElementById(callbackName);
+    if (scriptEl) scriptEl.remove();
+  }
+
+  window[callbackName] = function(data) {
+    cleanup();
+    if (onSuccess) onSuccess(data);
+  };
+
+  const queryParts = Object.keys(params).map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`);
+  queryParts.push(`callback=${callbackName}`);
+
+  const script = document.createElement('script');
+  script.id = callbackName;
+  script.src = `${SCRIPT_URL}?${queryParts.join('&')}`;
+  script.onerror = function() {
+    cleanup();
+    if (onError) onError(new Error("Network connection error to MCF server."));
+  };
+
+  document.body.appendChild(script);
+}
+
+// Session Management
+function setToken(token) {
+  sessionStorage.setItem('portal_token', token);
+}
+function getToken() {
+  return sessionStorage.getItem('portal_token');
+}
+function clearToken() {
+  sessionStorage.removeItem('portal_token');
+}
+
+let currentData = { user: null, records: [], txMap: {}, distinctStates: [] };
+let activeTab = 'verify';
+let currentFilter = 'ALL';
+let currentStateFilter = 'ALL';
+let currentSearch = '';
+let masterCurrentPage = 1;
+
+window.onload = function() {
+  const token = getToken();
+  if (token) {
+    showDashboard();
+    fetchDashboardData();
+  } else {
+    showLogin();
+  }
+};
+
+function cleanKey(val) {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (s.startsWith('#') || s === '#VALUE!' || s === '#N/A' || s === '#REF!') return '';
+  return s.replace(/[\s\-_]/g, '').toUpperCase();
+}
+
+function parseDateRobust(dateStr) {
+  if (!dateStr) return null;
+  const s = String(dateStr).trim();
+  const dmyMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (dmyMatch) {
+    return new Date(parseInt(dmyMatch[3], 10), parseInt(dmyMatch[2], 10) - 1, parseInt(dmyMatch[1], 10));
+  }
+  const fallback = new Date(s);
+  return isNaN(fallback.getTime()) ? null : fallback;
+}
+
+function isOlderThan7Days(timestampStr) {
+  const d = parseDateRobust(timestampStr);
+  if (!d) return false;
+  return ((new Date().getTime() - d.getTime()) / (1000 * 3600 * 24)) > 7;
+}
+
+// Document Inspection Pane
+function formatEmbedDriveUrl(rawUrl) {
+  if (!rawUrl) return '';
+  const url = String(rawUrl).trim();
+  const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+  if (fileIdMatch && fileIdMatch[1]) {
+    return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+  }
+  return url;
+}
+
+function openDocViewer(docUrl, titleText) {
+  if (!docUrl) {
+    alert("No document attachment available.");
+    return;
+  }
+  const wrapper = document.getElementById('split-wrapper');
+  const frame = document.getElementById('doc-frame');
+  const title = document.getElementById('doc-viewer-title');
+  const extBtn = document.getElementById('doc-viewer-external-btn');
+
+  title.innerText = titleText || "Document Inspection";
+  extBtn.href = docUrl;
+  frame.src = formatEmbedDriveUrl(docUrl);
+  wrapper.classList.add('split-active');
+}
+
+function closeDocViewer() {
+  document.getElementById('split-wrapper').classList.remove('split-active');
+  document.getElementById('doc-frame').src = 'about:blank';
+}
+
+function handleLogin(e) {
+  e.preventDefault();
+  const userId = document.getElementById('login-id').value;
+  const pass = document.getElementById('login-pass').value;
+  const btn = document.getElementById('btn-login');
+  const errBox = document.getElementById('login-error');
+
+  btn.disabled = true;
+  btn.innerText = "Signing in...";
+  errBox.classList.add('d-none');
+
+  callApi({ action: 'login', userId: userId, password: pass }, res => {
+    btn.disabled = false;
+    btn.innerText = "Sign In";
+    if (res && res.success) {
+      setToken(res.token);
+      activeTab = (res.user.role === 'STATE_ADMIN') ? 'pending' : 'verify';
+      showDashboard();
+      fetchDashboardData();
+    } else {
+      errBox.innerText = res ? res.error : "Unknown login response.";
+      errBox.classList.remove('d-none');
+    }
+  }, err => {
+    btn.disabled = false;
+    btn.innerText = "Sign In";
+    errBox.innerText = err.message;
+    errBox.classList.remove('d-none');
+  });
+}
+
+function logout() {
+  clearToken();
+  closeDocViewer();
+  currentData = { user: null, records: [], txMap: {}, distinctStates: [] };
+  showLogin();
+}
+
+function showLogin() {
+  document.getElementById('login-section').classList.remove('d-none');
+  document.getElementById('dashboard-section').classList.add('d-none');
+}
+
+function showDashboard() {
+  document.getElementById('login-section').classList.add('d-none');
+  document.getElementById('dashboard-section').classList.remove('d-none');
+}
+
+function fetchDashboardData() {
+  const token = getToken();
+  if (!token) { logout(); return; }
+
+  const container = document.getElementById('content-container');
+  container.innerHTML = `
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mt-2 text-muted">Retrieving MCF database...</p>
+    </div>`;
+
+  callApi({ action: 'getRecords', token: token }, response => {
+    if (response.sessionExpired) {
+      alert(response.error);
+      logout();
+      return;
+    }
+    if (response.error) {
+      container.innerHTML = `<div class="alert alert-danger">${response.error}</div>`;
+      return;
+    }
+    renderPortal(response);
+  }, err => {
+    container.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+  });
+}
+
+function renderPortal(response) {
+  currentData = response;
+  const user = response.user;
+  document.getElementById('user-badge').innerText = 
+    `${user.name} (${user.userId}) | Role: ${user.role} ${user.state !== 'ALL' ? '[' + user.state + ']' : ''}`;
+
+  renderNavTabs(user.role);
+  routeView();
+}
+
+function renderNavTabs(role) {
+  const nav = document.getElementById('nav-tabs');
+  if (role === 'STATE_ADMIN') {
+    nav.innerHTML = `
+      <li class="nav-item">
+        <button class="nav-link ${activeTab === 'pending' ? 'active' : ''}" onclick="switchTab('pending')">Pending Approvals</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link ${activeTab === 'state-history' ? 'active' : ''}" onclick="switchTab('state-history')">State History</button>
+      </li>`;
+  } else {
+    nav.innerHTML = `
+      <li class="nav-item">
+        <button class="nav-link ${activeTab === 'ro-pending-state' ? 'active' : ''}" onclick="switchTab('ro-pending-state')">Pending State</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link ${activeTab === 'verify' ? 'active' : ''}" onclick="switchTab('verify')">1. Payment & Verification</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link ${activeTab === 'assign' ? 'active' : ''}" onclick="switchTab('assign')">2. To Assign FIDE ID</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link ${activeTab === 'ro-master' ? 'active' : ''}" onclick="switchTab('ro-master')">3. Master Archive</button>
+      </li>`;
+  }
+}
+
+function switchTab(tab) {
+  closeDocViewer();
+  activeTab = tab;
+  currentFilter = 'ALL';
+  currentSearch = '';
+  renderNavTabs(currentData.user.role);
+  routeView();
+}
+
+function routeView() {
+  if (currentData.user.role === 'STATE_ADMIN') {
+    if (activeTab === 'pending') renderStatePendingView();
+    else if (activeTab === 'state-history') renderStateHistoryView();
+  } else {
+    if (activeTab === 'ro-pending-state') renderRoPendingStateView();
+    else if (activeTab === 'verify') renderRoPendingView();
+    else if (activeTab === 'assign') renderRoAssignmentView();
+    else if (activeTab === 'ro-master') initRoMasterView();
+  }
+}
+
+function toggleDetails(rowIndex) {
+  const panel = document.getElementById(`details-${rowIndex}`);
+  const btn = document.getElementById(`toggle-btn-${rowIndex}`);
+  if (panel.classList.contains('d-none')) {
+    panel.classList.remove('d-none');
+    btn.innerText = "Hide Details ▲";
+  } else {
+    panel.classList.add('d-none');
+    btn.innerText = "View Details ▼";
+  }
+}
+
+function removeCardLocally(rowIndex) {
+  const card = document.getElementById(`card-${rowIndex}`);
+  if (card) {
+    card.style.opacity = '0';
+    setTimeout(() => card.remove(), 250);
+  }
+}
+
+function checkLiveTxDuplicate(rowIndex) {
+  const input = document.getElementById(`tx-${rowIndex}`);
+  const alertBox = document.getElementById(`tx-warn-${rowIndex}`);
+  if (!input || !alertBox) return;
+
+  const clean = cleanKey(input.value);
+  if (!clean) {
+    alertBox.classList.add('d-none');
+    return;
+  }
+
+  const txMap = currentData.txMap || {};
+  const duplicate = txMap[clean];
+
+  if (duplicate && duplicate.rowIndex !== rowIndex) {
+    alertBox.innerHTML = `⚠️ <strong>Duplicate Transaction No!</strong> Already used by <strong>${duplicate.fullName}</strong> (${duplicate.state}).`;
+    alertBox.classList.remove('d-none');
+  } else {
+    alertBox.classList.add('d-none');
+  }
+}
+
+// 1. STATE ADMIN VIEW
+function renderStatePendingView() {
+  const pending = (currentData.records || []).filter(r => r.stateStatus === 'PENDING');
+  if (!pending.length) {
+    document.getElementById('content-container').innerHTML = 
+      `<div class="alert alert-success">No pending registrations for ${currentData.user.state}.</div>`;
+    return;
+  }
+
+  let html = `<div class="mb-3 text-muted small">Pending approvals for <strong>${currentData.user.state}</strong>:</div>`;
+  pending.forEach(r => {
+    const hasDupe = (r.icDuplicates || []).length > 0;
+    html += `
+    <div class="record-card ${hasDupe ? 'border-danger' : ''}" id="card-${r.rowIndex}">
+      <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+        <div>
+          <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
+          <span class="badge badge-state">${r.state}</span>
+          ${hasDupe ? '<span class="badge badge-duplicate ms-1">⚠️ Possible IC Duplicate</span>' : ''}
+          <div class="text-muted small mt-1">Submitted: ${r.timestamp || 'N/A'} | IC: ${r.icNo}</div>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+      </div>
+
+      <div class="record-details d-none" id="details-${r.rowIndex}">
+        <div class="row g-2 mb-3">
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName}</span></div></div>
+          <div class="col-md-5">
+            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
+              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo}</div></div>
+              <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
+            </div>
+          </div>
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
+          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">BirthDate</span><span class="cell-content">${r.dob || '-'} (${r.sex || '-'})</span></div></div>
+        </div>
+
+        <div class="bg-white p-3 border rounded">
+          <label class="form-label fw-semibold">State Remarks</label>
+          <input type="text" id="rem-${r.rowIndex}" class="form-control mb-3" placeholder="Remarks (optional)">
+          <div class="d-flex justify-content-end" id="btn-group-${r.rowIndex}">
+            <button class="btn btn-outline-danger me-2" onclick="submitState(${r.rowIndex}, 'REJECTED')">Reject Application</button>
+            <button class="btn btn-success px-4" onclick="submitState(${r.rowIndex}, 'APPROVED', ${hasDupe})">Approve Application</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('content-container').innerHTML = html;
+}
+
+// 2. STATE HISTORY VIEW
+function renderStateHistoryView() {
+  let list = currentData.records || [];
+  if (currentFilter !== 'ALL') list = list.filter(r => r.stateStatus === currentFilter);
+  if (currentSearch.trim()) {
+    const q = currentSearch.trim().toLowerCase();
+    list = list.filter(r => r.fullName.toLowerCase().includes(q) || r.icNo.toLowerCase().includes(q));
+  }
+
+  let html = `
+    <div class="card p-3 mb-4">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-6">
+          <input type="text" class="form-control form-control-sm" placeholder="Search name or IC..." value="${currentSearch}" oninput="currentSearch=this.value; renderStateHistoryView();">
+        </div>
+        <div class="col-md-6 text-md-end">
+          <div class="btn-group btn-group-sm">
+            <button class="btn ${currentFilter === 'ALL' ? 'btn-primary' : 'btn-outline-primary'}" onclick="currentFilter='ALL'; renderStateHistoryView();">All</button>
+            <button class="btn ${currentFilter === 'APPROVED' ? 'btn-success' : 'btn-outline-success'}" onclick="currentFilter='APPROVED'; renderStateHistoryView();">Approved</button>
+            <button class="btn ${currentFilter === 'REJECTED' ? 'btn-danger' : 'btn-outline-danger'}" onclick="currentFilter='REJECTED'; renderStateHistoryView();">Rejected</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  list.forEach(r => {
+    html += `
+    <div class="record-card" id="card-${r.rowIndex}">
+      <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+        <div>
+          <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
+          <span class="status-badge ${r.stateStatus === 'APPROVED' ? 'status-approved' : 'status-rejected'} me-2">${r.stateStatus}</span>
+          <div class="text-muted small mt-1">Submitted: ${r.timestamp} | IC: ${r.icNo}</div>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+      </div>
+      <div class="record-details d-none" id="details-${r.rowIndex}">
+        <div class="small">Reviewer: <strong>${r.stateReviewer || 'N/A'}</strong> | Timestamp: <strong>${r.stateActionTime || 'N/A'}</strong></div>
+        <div class="small mt-1">Remarks: <em>${r.stateRemarks || 'None'}</em></div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('content-container').innerHTML = html;
+}
+
+// 3. RO PENDING STATE
+function renderRoPendingStateView() {
+  const pendingState = (currentData.records || []).filter(r => r.stateStatus === 'PENDING');
+  if (!pendingState.length) {
+    document.getElementById('content-container').innerHTML = 
+      `<div class="alert alert-success">No applications pending State approval.</div>`;
+    return;
+  }
+
+  let html = `<div class="mb-3 text-muted small">Applications pending State review:</div>`;
+  pendingState.forEach(r => {
+    const isAging = isOlderThan7Days(r.timestamp);
+    html += `
+    <div class="record-card ${isAging ? 'card-aging' : ''}" id="card-${r.rowIndex}">
+      <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+        <div>
+          <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
+          <span class="badge badge-state me-1">${r.state}</span>
+          ${isAging ? '<span class="badge badge-aging me-1">⏰ > 7 Days</span>' : ''}
+          <div class="text-muted small mt-1">Submitted: ${r.timestamp} | IC: ${r.icNo}</div>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+      </div>
+
+      <div class="record-details d-none" id="details-${r.rowIndex}">
+        <div class="row g-2 mb-3">
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName}</span></div></div>
+          <div class="col-md-5">
+            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
+              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo}</div></div>
+              <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white p-3 border rounded">
+          <input type="text" id="rem-${r.rowIndex}" class="form-control mb-2" placeholder="Remarks">
+          <div class="d-flex justify-content-end" id="btn-group-${r.rowIndex}">
+            <button class="btn btn-outline-danger me-2" onclick="submitState(${r.rowIndex}, 'REJECTED')">Reject (On-Behalf)</button>
+            <button class="btn btn-success px-4" onclick="submitState(${r.rowIndex}, 'APPROVED')">Approve (On-Behalf)</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('content-container').innerHTML = html;
+}
+
+// 4. RO VERIFY & PAYMENT
+function renderRoPendingView() {
+  const pending = (currentData.records || []).filter(r => r.stateStatus === 'APPROVED' && r.roStatus === 'PENDING');
+  if (!pending.length) {
+    document.getElementById('content-container').innerHTML = 
+      `<div class="alert alert-success">No applications currently awaiting payment verification.</div>`;
+    return;
+  }
+
+  let html = `<div class="mb-3 text-muted small">Approved by State, awaiting Payment Verification:</div>`;
+  pending.forEach(r => {
+    html += `
+    <div class="record-card" id="card-${r.rowIndex}">
+      <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+        <div>
+          <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
+          <span class="badge badge-state">${r.state}</span>
+          <div class="text-muted small mt-1">State OK: ${r.stateActionTime || 'N/A'} | IC: ${r.icNo}</div>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+      </div>
+
+      <div class="record-details d-none" id="details-${r.rowIndex}">
+        <div class="row g-2 mb-3">
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName}</span></div></div>
+          <div class="col-md-5">
+            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
+              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo}</div></div>
+              <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : ''}</div>
+            </div>
+          </div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Remarks</span><span class="cell-content text-muted">${r.stateRemarks || '-'}</span></div></div>
+          <div class="col-md-6">
+            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
+              <div><span class="cell-title">Payment Proof</span><div class="cell-content">Receipt</div></div>
+              <div>${r.paymentUrl ? `<button type="button" class="btn btn-sm btn-success py-1" onclick="openDocViewer('${r.paymentUrl}', 'Payment Receipt:${r.fullName.replace(/'/g, "\\'")}')">Inspect Receipt 🧾</button>` : '<span class="text-danger small">No Receipt</span>'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-3 border rounded">
+          <div class="row g-2 mb-2">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Payment Transaction No <span class="text-danger">*</span></label>
+              <input type="text" id="tx-${r.rowIndex}" class="form-control" placeholder="Enter reference no" oninput="checkLiveTxDuplicate(${r.rowIndex})">
+              <div id="tx-warn-${r.rowIndex}" class="alert alert-warning py-1 px-2 mt-2 small d-none"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Remarks</label>
+              <input type="text" id="rorem-${r.rowIndex}" class="form-control" placeholder="Optional">
+            </div>
+          </div>
+          <div class="d-flex justify-content-end" id="btn-group-${r.rowIndex}">
+            <button class="btn btn-outline-danger me-2" onclick="submitRo(${r.rowIndex}, 'REJECTED')">Reject Application</button>
+            <button class="btn btn-success px-4" onclick="submitRo(${r.rowIndex}, 'APPROVED')">Verify & Approve</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('content-container').innerHTML = html;
+}
+
+// 5. RO ASSIGN FIDE ID
+function renderRoAssignmentView() {
+  const assignable = (currentData.records || []).filter(r => r.roStatus === 'APPROVED' && r.fideIdStatus !== 'ASSIGNED');
+  if (!assignable.length) {
+    document.getElementById('content-container').innerHTML = 
+      `<div class="alert alert-success">No records pending FIDE ID assignment.</div>`;
+    return;
+  }
+
+  let html = `<div class="mb-3 text-muted small">Verified applications pending ID assignment:</div>`;
+  assignable.forEach(r => {
+    html += `
+    <div class="record-card" id="card-${r.rowIndex}">
+      <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+        <div>
+          <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
+          <span class="badge badge-state">${r.state}</span>
+          <div class="text-muted small mt-1">Verified: ${r.roActionTime || 'N/A'} | IC: ${r.icNo}</div>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+      </div>
+
+      <div class="record-details d-none" id="details-${r.rowIndex}">
+        <div class="row g-2 mb-3">
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">IC No</span><span class="cell-content">${r.icNo}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">BirthDate / Gender</span><span class="cell-content">${r.dob} (${r.sex})</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email / Mobile</span><span class="cell-content">${r.email} | ${r.mobile}</span></div></div>
+        </div>
+
+        <div class="bg-white p-3 border rounded">
+          <div class="row align-items-end g-2">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Enter Assigned FIDE ID <span class="text-danger">*</span></label>
+              <input type="text" id="fide-${r.rowIndex}" class="form-control" placeholder="e.g. 5712345">
+            </div>
+            <div class="col-md-4" id="btn-group-${r.rowIndex}">
+              <button class="btn btn-primary w-100 py-2" onclick="submitFide(${r.rowIndex})">Save FIDE ID</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('content-container').innerHTML = html;
+}
+
+// 6. RO MASTER ARCHIVE
+function initRoMasterView() {
+  const container = document.getElementById('content-container');
+  const distinctStates = currentData.distinctStates || [];
+
+  container.innerHTML = `
+    <div class="card p-3 mb-4 shadow-sm">
+      <div class="row g-2 align-items-center">
+        <div class="col-lg-5 col-md-12">
+          <div class="input-group input-group-sm">
+            <select class="form-select flex-grow-0" style="width: 130px;" id="ro-search-field">
+              <option value="ALL">All Fields</option>
+              <option value="NAME">Name</option>
+              <option value="IC">IC No</option>
+              <option value="FIDE">FIDE ID</option>
+            </select>
+            <input type="text" class="form-control" id="ro-search-input" placeholder="Search..." onkeydown="if(event.key==='Enter') executeMasterSearch(1)">
+            <button class="btn btn-primary" onclick="executeMasterSearch(1)">Search</button>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-5">
+          <select class="form-select form-select-sm" id="ro-state-filter" onchange="executeMasterSearch(1)">
+            <option value="ALL">All States</option>
+            ${distinctStates.map(st => `<option value="${st}">${st}</option>`).join('')}
+          </select>
+        </div>
+        <div class="col-lg-4 col-md-7 text-lg-end">
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-primary" onclick="setMasterStatus('ALL')">All</button>
+            <button class="btn btn-outline-primary" onclick="setMasterStatus('ASSIGNED')">Assigned</button>
+            <button class="btn btn-outline-primary" onclick="setMasterStatus('REJECTED')">Rejected</button>
+          </div>
+        </div>
+      </div>
+      <div class="mt-2 text-muted small" id="ro-master-stats">Loading...</div>
+    </div>
+    <div id="ro-master-results-container"></div>
+    <div id="ro-pagination-controls" class="d-flex justify-content-between align-items-center mt-3 d-none">
+      <button class="btn btn-outline-secondary btn-sm" id="btn-prev-page" onclick="executeMasterSearch(masterCurrentPage - 1)">◀ Prev</button>
+      <span class="text-muted small" id="page-indicator">Page 1</span>
+      <button class="btn btn-outline-secondary btn-sm" id="btn-next-page" onclick="executeMasterSearch(masterCurrentPage + 1)">Next ▶</button>
+    </div>`;
+
+  executeMasterSearch(1);
+}
+
+function setMasterStatus(statusVal) {
+  currentFilter = statusVal;
+  executeMasterSearch(1);
+}
+
+function executeMasterSearch(page) {
+  const token = getToken();
+  const resultsBox = document.getElementById('ro-master-results-container');
+  const statsBox = document.getElementById('ro-master-stats');
+  const pagControls = document.getElementById('ro-pagination-controls');
+
+  const q = document.getElementById('ro-search-input')?.value || '';
+  const sField = document.getElementById('ro-search-field')?.value || 'ALL';
+  const stFilter = document.getElementById('ro-state-filter')?.value || 'ALL';
+
+  resultsBox.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div></div>`;
+
+  callApi({
+    action: 'queryMaster',
+    token: token,
+    query: q,
+    field: sField,
+    state: stFilter,
+    status: currentFilter,
+    page: page
+  }, res => {
+    if (res && res.error) {
+      resultsBox.innerHTML = `<div class="alert alert-danger">${res.error}</div>`;
+      return;
+    }
+
+    const list = res.records || [];
+    masterCurrentPage = res.currentPage || 1;
+    statsBox.innerHTML = `Found <strong>${res.totalMatches}</strong> records (Page ${masterCurrentPage} of ${res.totalPages})`;
+
+    if (!list.length) {
+      resultsBox.innerHTML = `<div class="alert alert-info">No records found.</div>`;
+      pagControls.classList.add('d-none');
+      return;
+    }
+
+    let html = '';
+    list.forEach(r => {
+      html += `
+      <div class="record-card shadow-sm" id="card-${r.rowIndex}">
+        <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+          <div>
+            <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
+            <span class="badge badge-state me-1">${r.state}</span>
+            ${r.assignedFideId ? `<span class="badge bg-dark">FIDE ID: ${r.assignedFideId}</span>` : ''}
+            <div class="text-muted small mt-1">Submitted: ${r.timestamp} | IC: ${r.icNo}</div>
+          </div>
+          <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+        </div>
+        <div class="record-details d-none" id="details-${r.rowIndex}">
+          <div class="small">FIDE ID: <strong>${r.assignedFideId || 'Pending'}</strong> | Assigned At: <strong>${r.fideAssignedTime || 'N/A'}</strong></div>
+          <div class="small">RO: <strong>${r.roStatus}</strong> (Reviewer: ${r.roReviewer || 'N/A'})</div>
+        </div>
+      </div>`;
+    });
+    resultsBox.innerHTML = html;
+
+    if (res.totalPages > 1) {
+      pagControls.classList.remove('d-none');
+      document.getElementById('page-indicator').innerText = `Page ${masterCurrentPage} of ${res.totalPages}`;
+      document.getElementById('btn-prev-page').disabled = (masterCurrentPage <= 1);
+      document.getElementById('btn-next-page').disabled = (masterCurrentPage >= res.totalPages);
+    } else {
+      pagControls.classList.add('d-none');
+    }
+  });
+}
+
+// ACTION DISPATCHERS
+function submitState(rowIndex, status, isDupe) {
+  const token = getToken();
+  const remarks = document.getElementById(`rem-${rowIndex}`).value;
+  if (status === 'APPROVED' && isDupe && !confirm("⚠️ DUPLICATE IC DETECTED! Proceed?")) return;
+
+  const btnGroup = document.getElementById(`btn-group-${rowIndex}`);
+  if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Saving...`;
+
+  removeCardLocally(rowIndex);
+
+  callApi({
+    action: 'updateStateReview',
+    token: token,
+    rowIndex: rowIndex,
+    status: status,
+    remarks: remarks
+  }, res => {
+    if (!res.success) alert("Error: " + res.error);
+  });
+}
+
+function submitRo(rowIndex, status) {
+  const token = getToken();
+  const tx = document.getElementById(`tx-${rowIndex}`).value;
+  const remarks = document.getElementById(`rorem-${rowIndex}`).value;
+
+  if (status === 'APPROVED' && !tx.trim()) {
+    alert("Please enter Transaction Number.");
+    return;
+  }
+
+  const btnGroup = document.getElementById(`btn-group-${rowIndex}`);
+  if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Saving...`;
+
+  removeCardLocally(rowIndex);
+
+  callApi({
+    action: 'updateRoReview',
+    token: token,
+    rowIndex: rowIndex,
+    status: status,
+    remarks: remarks,
+    transactionNo: tx
+  }, res => {
+    if (!res.success) alert("Error: " + res.error);
+  });
+}
+
+function submitFide(rowIndex) {
+  const token = getToken();
+  const id = document.getElementById(`fide-${rowIndex}`).value;
+
+  if (!id.trim()) {
+    alert("Please enter assigned FIDE ID.");
+    return;
+  }
+
+  const btnGroup = document.getElementById(`btn-group-${rowIndex}`);
+  if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Saving ID...`;
+
+  removeCardLocally(rowIndex);
+
+  callApi({
+    action: 'assignFideId',
+    token: token,
+    rowIndex: rowIndex,
+    fideId: id
+  }, res => {
+    if (!res.success) alert("Error: " + res.error);
+  });
+}
+</script>
+</body>
+</html>
