@@ -200,9 +200,9 @@
   <div id="login-section" class="container">
     <div class="card p-4 shadow-sm" id="login-box">
       <div class="d-flex justify-content-center align-items-center mb-3">
-        <img src="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png" alt="Malaysian Chess Federation" class="portal-logo-login">
+        <img src="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png" alt="Malaysian Chess Federation" class="portal-logo-login" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/en/thumb/e/e9/Malaysian_Chess_Federation_logo.png/220px-Malaysian_Chess_Federation_logo.png';">
         <div class="logo-divider"></div>
-        <img src="https://i.postimg.cc/sDW16LMV/FIDE-LOGO.png" alt="FIDE" class="portal-logo-login">
+        <img src="https://i.postimg.cc/sDW16LMV/FIDE-LOGO.png" alt="FIDE" class="portal-logo-login" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Fide_logo.png/320px-Fide_logo.png';">
       </div>
 
       <h4 class="text-center fw-bold mb-1">FIDE ID Portal</h4>
@@ -228,9 +228,9 @@
   <div id="dashboard-section" class="container py-4 d-none">
     <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom flex-wrap gap-2">
       <div class="d-flex align-items-center">
-        <img src="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png" alt="MCF Logo" class="portal-logo-header">
+        <img src="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png" alt="MCF Logo" class="portal-logo-header" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/en/thumb/e/e9/Malaysian_Chess_Federation_logo.png/220px-Malaysian_Chess_Federation_logo.png';">
         <div class="logo-divider"></div>
-        <img src="https://i.postimg.cc/sDW16LMV/FIDE-LOGO.png" alt="FIDE Logo" class="portal-logo-header me-3">
+        <img src="https://i.postimg.cc/sDW16LMV/FIDE-LOGO.png" alt="FIDE Logo" class="portal-logo-header me-3" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Fide_logo.png/320px-Fide_logo.png';">
         <div>
           <h4 class="mb-0 fw-bold">FIDE ID Registration Portal</h4>
           <small id="user-badge" class="text-secondary"></small>
@@ -246,8 +246,10 @@
 
     <!-- Split Screen Review Wrapper -->
     <div id="split-wrapper" class="split-layout">
+      <!-- Left Side: Applicant Cards -->
       <div id="content-container"></div>
 
+      <!-- Right Side: Embedded Document Viewer -->
       <div id="doc-viewer-pane">
         <div class="doc-viewer-header">
           <span class="fw-semibold small" id="doc-viewer-title">Document Inspection</span>
@@ -271,7 +273,7 @@
       </div>
       <div class="col-md-6 text-md-end small">
         <a href="index.html">Public Status Check</a> &nbsp;|&nbsp; 
-        <a href="https://malaysiachess.org" target="_blank" rel="noopener noreferrer">MCF Website</a> &nbsp;|&nbsp; 
+        <a href="https://malaysiachess.org" target="_blank" rel="noopener noreferrer">Official Website</a> &nbsp;|&nbsp; 
         <a href="https://ratings.fide.com" target="_blank" rel="noopener noreferrer">FIDE Ratings</a>
         <div class="text-muted mt-1">&copy; 2026 Malaysian Chess Federation. All Rights Reserved.</div>
       </div>
@@ -280,7 +282,7 @@
 </footer>
 
 <script>
-// >>>>> PASTE YOUR ACTUAL APPS SCRIPT WEB APP URL HERE <<<<<
+// Cloudflare Worker Proxy URL
 const SCRIPT_URL = "https://fide-id-app.mcf-ratings.workers.dev/";
 
 // ==========================================
@@ -358,9 +360,22 @@ function cleanKey(val) {
 function parseDateRobust(dateStr) {
   if (!dateStr) return null;
   const s = String(dateStr).trim();
-  const dmyMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+
+  const dmyMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
   if (dmyMatch) {
-    return new Date(parseInt(dmyMatch[3], 10), parseInt(dmyMatch[2], 10) - 1, parseInt(dmyMatch[1], 10));
+    return new Date(
+      parseInt(dmyMatch[3], 10),
+      parseInt(dmyMatch[2], 10) - 1,
+      parseInt(dmyMatch[1], 10)
+    );
+  }
+  const ymdMatch = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (ymdMatch) {
+    return new Date(
+      parseInt(ymdMatch[1], 10),
+      parseInt(ymdMatch[2], 10) - 1,
+      parseInt(ymdMatch[3], 10)
+    );
   }
   const fallback = new Date(s);
   return isNaN(fallback.getTime()) ? null : fallback;
@@ -372,7 +387,9 @@ function isOlderThan7Days(timestampStr) {
   return ((new Date().getTime() - d.getTime()) / (1000 * 3600 * 24)) > 7;
 }
 
-// Document Inspection Pane
+// ==========================================
+// EMBEDDED DOCUMENT INSPECTION SYSTEM
+// ==========================================
 function formatEmbedDriveUrl(rawUrl) {
   if (!rawUrl) return '';
   const url = String(rawUrl).trim();
@@ -385,9 +402,10 @@ function formatEmbedDriveUrl(rawUrl) {
 
 function openDocViewer(docUrl, titleText) {
   if (!docUrl) {
-    alert("No document attachment available.");
+    alert("No document attachment available for this applicant.");
     return;
   }
+
   const wrapper = document.getElementById('split-wrapper');
   const frame = document.getElementById('doc-frame');
   const title = document.getElementById('doc-viewer-title');
@@ -400,8 +418,10 @@ function openDocViewer(docUrl, titleText) {
 }
 
 function closeDocViewer() {
-  document.getElementById('split-wrapper').classList.remove('split-active');
-  document.getElementById('doc-frame').src = 'about:blank';
+  const wrapper = document.getElementById('split-wrapper');
+  const frame = document.getElementById('doc-frame');
+  wrapper.classList.remove('split-active');
+  frame.src = 'about:blank';
 }
 
 function handleLogin(e) {
@@ -460,7 +480,7 @@ function fetchDashboardData() {
   container.innerHTML = `
     <div class="text-center py-5">
       <div class="spinner-border text-primary" role="status"></div>
-      <p class="mt-2 text-muted">Retrieving MCF database...</p>
+      <p class="mt-2 text-muted">Loading MCF database...</p>
     </div>`;
 
   callApi({ action: 'getRecords', token: token }, response => {
@@ -497,21 +517,21 @@ function renderNavTabs(role) {
         <button class="nav-link ${activeTab === 'pending' ? 'active' : ''}" onclick="switchTab('pending')">Pending Approvals</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link ${activeTab === 'state-history' ? 'active' : ''}" onclick="switchTab('state-history')">State History</button>
+        <button class="nav-link ${activeTab === 'state-history' ? 'active' : ''}" onclick="switchTab('state-history')">State Applicants & History</button>
       </li>`;
   } else {
     nav.innerHTML = `
       <li class="nav-item">
-        <button class="nav-link ${activeTab === 'ro-pending-state' ? 'active' : ''}" onclick="switchTab('ro-pending-state')">Pending State</button>
+        <button class="nav-link ${activeTab === 'ro-pending-state' ? 'active' : ''}" onclick="switchTab('ro-pending-state')">Pending State (All)</button>
       </li>
       <li class="nav-item">
         <button class="nav-link ${activeTab === 'verify' ? 'active' : ''}" onclick="switchTab('verify')">1. Payment & Verification</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link ${activeTab === 'assign' ? 'active' : ''}" onclick="switchTab('assign')">2. To Assign FIDE ID</button>
+        <button class="nav-link ${activeTab === 'assign' ? 'active' : ''}" onclick="switchTab('assign')">2. To Be Assigned FIDE ID</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link ${activeTab === 'ro-master' ? 'active' : ''}" onclick="switchTab('ro-master')">3. Master Archive</button>
+        <button class="nav-link ${activeTab === 'ro-master' ? 'active' : ''}" onclick="switchTab('ro-master')">3. All Applicants & Master</button>
       </li>`;
   }
 }
@@ -520,7 +540,9 @@ function switchTab(tab) {
   closeDocViewer();
   activeTab = tab;
   currentFilter = 'ALL';
+  currentStateFilter = 'ALL';
   currentSearch = '';
+  masterCurrentPage = 1;
   renderNavTabs(currentData.user.role);
   routeView();
 }
@@ -549,12 +571,20 @@ function toggleDetails(rowIndex) {
   }
 }
 
-function removeCardLocally(rowIndex) {
+function removeCardLocally(rowIndex, checkEmptyCallback) {
   const card = document.getElementById(`card-${rowIndex}`);
   if (card) {
     card.style.opacity = '0';
-    setTimeout(() => card.remove(), 250);
+    card.style.transform = 'translateY(-10px)';
+    setTimeout(() => {
+      card.remove();
+      if (checkEmptyCallback) checkEmptyCallback();
+    }, 250);
   }
+}
+
+function findIcDuplicates(record) {
+  return record.icDuplicates || [];
 }
 
 function checkLiveTxDuplicate(rowIndex) {
@@ -572,25 +602,28 @@ function checkLiveTxDuplicate(rowIndex) {
   const duplicate = txMap[clean];
 
   if (duplicate && duplicate.rowIndex !== rowIndex) {
-    alertBox.innerHTML = `⚠️ <strong>Duplicate Transaction No!</strong> Already used by <strong>${duplicate.fullName}</strong> (${duplicate.state}).`;
+    alertBox.innerHTML = `⚠️ <strong>Duplicate Transaction No!</strong> Already used by <strong>${duplicate.fullName}</strong> (${duplicate.state}) [${duplicate.source || 'Active Sheet'}].`;
     alertBox.classList.remove('d-none');
   } else {
     alertBox.classList.add('d-none');
   }
 }
 
-// 1. STATE ADMIN VIEW
+// 1. STATE ADMIN: PENDING QUEUE
 function renderStatePendingView() {
   const pending = (currentData.records || []).filter(r => r.stateStatus === 'PENDING');
   if (!pending.length) {
     document.getElementById('content-container').innerHTML = 
-      `<div class="alert alert-success">No pending registrations for ${currentData.user.state}.</div>`;
+      `<div class="alert alert-success">No pending player registrations for ${currentData.user.state}.</div>`;
     return;
   }
 
-  let html = `<div class="mb-3 text-muted small">Pending approvals for <strong>${currentData.user.state}</strong>:</div>`;
+  let html = `<div id="records-list"><div class="mb-3 text-muted small">Pending submissions for <strong>${currentData.user.state}</strong>:</div>`;
+
   pending.forEach(r => {
-    const hasDupe = (r.icDuplicates || []).length > 0;
+    const icDupes = findIcDuplicates(r);
+    const hasDupe = icDupes.length > 0;
+
     html += `
     <div class="record-card ${hasDupe ? 'border-danger' : ''}" id="card-${r.rowIndex}">
       <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
@@ -600,25 +633,41 @@ function renderStatePendingView() {
           ${hasDupe ? '<span class="badge badge-duplicate ms-1">⚠️ Possible IC Duplicate</span>' : ''}
           <div class="text-muted small mt-1">Submitted: ${r.timestamp || 'N/A'} | IC: ${r.icNo}</div>
         </div>
-        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
 
       <div class="record-details d-none" id="details-${r.rowIndex}">
+        ${hasDupe ? `
+          <div class="alert alert-danger p-2 small mb-3">
+            <strong>⚠️ DUPLICATE IC FOUND:</strong>
+            <ul class="mb-0 mt-1">
+              ${icDupes.map(d => `<li><strong>${d.fullName}</strong> (${d.state}) - State Status: <em>${d.stateStatus || d.source}</em> | FIDE ID: <strong>${d.assignedFideId || 'Not assigned'}</strong></li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
         <div class="row g-2 mb-3">
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName}</span></div></div>
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName || '-'}</span></div></div>
           <div class="col-md-5">
             <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo}</div></div>
+              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo || '-'}</div></div>
               <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
             </div>
           </div>
           <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
-          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">BirthDate</span><span class="cell-content">${r.dob || '-'} (${r.sex || '-'})</span></div></div>
+          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">BirthDate (YYYY-MM-DD)</span><span class="cell-content">${r.dob || '-'}</span></div></div>
+          <div class="col-md-3"><div class="grid-cell"><span class="cell-title">Gender</span><span class="cell-content">${r.sex || '-'}</span></div></div>
+          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
         </div>
+
+        <hr class="my-3">
 
         <div class="bg-white p-3 border rounded">
           <label class="form-label fw-semibold">State Remarks</label>
-          <input type="text" id="rem-${r.rowIndex}" class="form-control mb-3" placeholder="Remarks (optional)">
+          <input type="text" id="rem-${r.rowIndex}" class="form-control mb-3" placeholder="Add remarks here (e.g. Spelling error per IC)">
           <div class="d-flex justify-content-end" id="btn-group-${r.rowIndex}">
             <button class="btn btn-outline-danger me-2" onclick="submitState(${r.rowIndex}, 'REJECTED')">Reject Application</button>
             <button class="btn btn-success px-4" onclick="submitState(${r.rowIndex}, 'APPROVED', ${hasDupe})">Approve Application</button>
@@ -627,12 +676,15 @@ function renderStatePendingView() {
       </div>
     </div>`;
   });
+
+  html += `</div>`;
   document.getElementById('content-container').innerHTML = html;
 }
 
-// 2. STATE HISTORY VIEW
+// 2. STATE ADMIN: HISTORY & APPLICANTS
 function renderStateHistoryView() {
   let list = currentData.records || [];
+
   if (currentFilter !== 'ALL') list = list.filter(r => r.stateStatus === currentFilter);
   if (currentSearch.trim()) {
     const q = currentSearch.trim().toLowerCase();
@@ -642,125 +694,217 @@ function renderStateHistoryView() {
   let html = `
     <div class="card p-3 mb-4">
       <div class="row g-2 align-items-center">
-        <div class="col-md-6">
-          <input type="text" class="form-control form-control-sm" placeholder="Search name or IC..." value="${currentSearch}" oninput="currentSearch=this.value; renderStateHistoryView();">
+        <div class="col-md-4">
+          <input type="text" class="form-control form-control-sm" placeholder="Search by name or IC..." value="${currentSearch}" oninput="currentSearch=this.value; renderStateHistoryView();">
         </div>
-        <div class="col-md-6 text-md-end">
+        <div class="col-md-8 text-md-end">
           <div class="btn-group btn-group-sm">
             <button class="btn ${currentFilter === 'ALL' ? 'btn-primary' : 'btn-outline-primary'}" onclick="currentFilter='ALL'; renderStateHistoryView();">All</button>
             <button class="btn ${currentFilter === 'APPROVED' ? 'btn-success' : 'btn-outline-success'}" onclick="currentFilter='APPROVED'; renderStateHistoryView();">Approved</button>
             <button class="btn ${currentFilter === 'REJECTED' ? 'btn-danger' : 'btn-outline-danger'}" onclick="currentFilter='REJECTED'; renderStateHistoryView();">Rejected</button>
+            <button class="btn ${currentFilter === 'PENDING' ? 'btn-warning' : 'btn-outline-warning'}" onclick="currentFilter='PENDING'; renderStateHistoryView();">Pending</button>
           </div>
         </div>
       </div>
     </div>`;
 
+  if (!list.length) {
+    html += `<div class="alert alert-info">No applicants found matching filter.</div>`;
+    document.getElementById('content-container').innerHTML = html;
+    return;
+  }
+
   list.forEach(r => {
+    const isRoApproved = (r.roStatus === 'APPROVED');
+
     html += `
     <div class="record-card" id="card-${r.rowIndex}">
       <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
-          <span class="status-badge ${r.stateStatus === 'APPROVED' ? 'status-approved' : 'status-rejected'} me-2">${r.stateStatus}</span>
-          <div class="text-muted small mt-1">Submitted: ${r.timestamp} | IC: ${r.icNo}</div>
+          <span class="status-badge ${r.stateStatus === 'APPROVED' ? 'status-approved' : (r.stateStatus === 'REJECTED' ? 'status-rejected' : 'status-pending')} me-2">${r.stateStatus}</span>
+          ${isRoApproved ? '<span class="badge bg-secondary me-1">RO Approved</span>' : ''}
+          <div class="text-muted small mt-1">Submitted: ${r.timestamp || 'N/A'} | IC: ${r.icNo}</div>
         </div>
-        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
+
       <div class="record-details d-none" id="details-${r.rowIndex}">
-        <div class="small">Reviewer: <strong>${r.stateReviewer || 'N/A'}</strong> | Timestamp: <strong>${r.stateActionTime || 'N/A'}</strong></div>
-        <div class="small mt-1">Remarks: <em>${r.stateRemarks || 'None'}</em></div>
+        <div class="row g-2 mb-2">
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">IC No</span><span class="cell-content">${r.icNo}</span></div></div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">DOB</span><span class="cell-content">${r.dob}</span></div></div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">Gender</span><span class="cell-content">${r.sex}</span></div></div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Reviewer</span><span class="cell-content">${r.stateReviewer || 'N/A'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Action Timestamp</span><span class="cell-content">${r.stateActionTime || 'N/A'}</span></div></div>
+          <div class="col-12"><div class="grid-cell"><span class="cell-title">State Remarks</span><span class="cell-content text-muted">${r.stateRemarks || 'None recorded'}</span></div></div>
+        </div>
+        
+        <hr class="my-3">
+        
+        <div class="bg-white p-3 border rounded">
+          <h6 class="fw-bold text-secondary mb-1">Update / Re-evaluate Decision</h6>
+          ${isRoApproved ? `
+            <div class="alert alert-warning py-2 px-3 small mb-0 mt-2">
+              🔒 <strong>Action Locked:</strong> This application has already been verified and <strong>Approved by the Rating Officer</strong>. State Admin cannot alter it.
+            </div>
+          ` : `
+            <p class="small text-muted mb-2">Only applications not yet approved by Rating Officer may be changed:</p>
+            <input type="text" id="rem-${r.rowIndex}" class="form-control mb-3" placeholder="Update remarks" value="${r.stateRemarks || ''}">
+            <div class="d-flex justify-content-end" id="btn-group-${r.rowIndex}">
+              <button class="btn btn-outline-danger me-2" onclick="reEvaluateState(${r.rowIndex}, 'REJECTED')">Set to Rejected</button>
+              <button class="btn btn-success px-4" onclick="reEvaluateState(${r.rowIndex}, 'APPROVED')">Set to Approved</button>
+            </div>
+          `}
+        </div>
       </div>
     </div>`;
   });
+
   document.getElementById('content-container').innerHTML = html;
 }
 
-// 3. RO PENDING STATE
+// 3. RATING OFFICER: PENDING STATE APPROVAL
 function renderRoPendingStateView() {
   const pendingState = (currentData.records || []).filter(r => r.stateStatus === 'PENDING');
   if (!pendingState.length) {
     document.getElementById('content-container').innerHTML = 
-      `<div class="alert alert-success">No applications pending State approval.</div>`;
+      `<div class="alert alert-success">No applications currently pending State approval across Malaysia.</div>`;
     return;
   }
 
-  let html = `<div class="mb-3 text-muted small">Applications pending State review:</div>`;
+  let html = `<div class="mb-3 text-muted small">Applications across all states pending State Admin review:</div>`;
+
   pendingState.forEach(r => {
     const isAging = isOlderThan7Days(r.timestamp);
+    const icDupes = findIcDuplicates(r);
+    const hasDupe = icDupes.length > 0;
+
     html += `
-    <div class="record-card ${isAging ? 'card-aging' : ''}" id="card-${r.rowIndex}">
+    <div class="record-card ${isAging ? 'card-aging' : ''} ${hasDupe ? 'border-danger' : ''}" id="card-${r.rowIndex}">
       <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="badge badge-state me-1">${r.state}</span>
-          ${isAging ? '<span class="badge badge-aging me-1">⏰ > 7 Days</span>' : ''}
-          <div class="text-muted small mt-1">Submitted: ${r.timestamp} | IC: ${r.icNo}</div>
+          ${isAging ? '<span class="badge badge-aging me-1">⏰ Applied > 7 Days Ago</span>' : ''}
+          ${hasDupe ? '<span class="badge badge-duplicate me-1">⚠️ Possible IC Duplicate</span>' : ''}
+          <div class="text-muted small mt-1">Submitted: <strong>${r.timestamp || 'N/A'}</strong> | IC: ${r.icNo}</div>
         </div>
-        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
 
       <div class="record-details d-none" id="details-${r.rowIndex}">
+        ${isAging ? `<div class="alert alert-danger py-2 small mb-3"><strong>⚠️ Delayed Application:</strong> Submitted over 7 days ago and has not received State Admin review.</div>` : ''}
+
+        ${hasDupe ? `
+          <div class="alert alert-danger p-2 small mb-3">
+            <strong>⚠️ DUPLICATE IC FOUND:</strong> Matches existing submissions:
+            <ul class="mb-0 mt-1">
+              ${icDupes.map(d => `<li><strong>${d.fullName}</strong> (${d.state}) - State Status: <em>${d.stateStatus || d.source}</em> | FIDE ID: <strong>${d.assignedFideId || 'Not assigned'}</strong> [${d.source || 'Active'}]</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
         <div class="row g-2 mb-3">
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName}</span></div></div>
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName || '-'}</span></div></div>
           <div class="col-md-5">
             <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo}</div></div>
+              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo || '-'}</div></div>
               <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
             </div>
           </div>
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
+          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">BirthDate (YYYY-MM-DD)</span><span class="cell-content">${r.dob || '-'}</span></div></div>
+          <div class="col-md-3"><div class="grid-cell"><span class="cell-title">Gender</span><span class="cell-content">${r.sex || '-'}</span></div></div>
+          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
         </div>
+
+        <hr class="my-3">
+
         <div class="bg-white p-3 border rounded">
-          <input type="text" id="rem-${r.rowIndex}" class="form-control mb-2" placeholder="Remarks">
+          <h6 class="fw-bold text-secondary mb-1">Action on Behalf of State</h6>
+          <p class="small text-muted mb-2">Rating Officer may approve or reject on behalf of ${r.state}:</p>
+          <input type="text" id="rem-${r.rowIndex}" class="form-control mb-3" placeholder="Remarks (optional for approve, recommended for reject)">
           <div class="d-flex justify-content-end" id="btn-group-${r.rowIndex}">
             <button class="btn btn-outline-danger me-2" onclick="submitState(${r.rowIndex}, 'REJECTED')">Reject (On-Behalf)</button>
-            <button class="btn btn-success px-4" onclick="submitState(${r.rowIndex}, 'APPROVED')">Approve (On-Behalf)</button>
+            <button class="btn btn-success px-4" onclick="submitState(${r.rowIndex}, 'APPROVED', ${hasDupe})">Approve (On-Behalf)</button>
           </div>
         </div>
       </div>
     </div>`;
   });
+
   document.getElementById('content-container').innerHTML = html;
 }
 
-// 4. RO VERIFY & PAYMENT
+// 4. RATING OFFICER: PAYMENT & VERIFICATION
 function renderRoPendingView() {
   const pending = (currentData.records || []).filter(r => r.stateStatus === 'APPROVED' && r.roStatus === 'PENDING');
   if (!pending.length) {
     document.getElementById('content-container').innerHTML = 
-      `<div class="alert alert-success">No applications currently awaiting payment verification.</div>`;
+      `<div class="alert alert-success">No registrations currently awaiting payment verification.</div>`;
     return;
   }
 
-  let html = `<div class="mb-3 text-muted small">Approved by State, awaiting Payment Verification:</div>`;
+  let html = `<div id="ro-pending-list"><div class="mb-3 text-muted small">Registrations approved by State Admin awaiting RO payment verification:</div>`;
+
   pending.forEach(r => {
+    const icDupes = findIcDuplicates(r);
+    const hasDupe = icDupes.length > 0;
+
     html += `
-    <div class="record-card" id="card-${r.rowIndex}">
+    <div class="record-card ${hasDupe ? 'border-danger' : ''}" id="card-${r.rowIndex}">
       <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="badge badge-state">${r.state}</span>
+          ${hasDupe ? '<span class="badge badge-duplicate ms-1">⚠️ IC Duplicate</span>' : ''}
           <div class="text-muted small mt-1">State OK: ${r.stateActionTime || 'N/A'} | IC: ${r.icNo}</div>
         </div>
-        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
 
       <div class="record-details d-none" id="details-${r.rowIndex}">
+        ${hasDupe ? `
+          <div class="alert alert-danger p-2 small mb-3">
+            <strong>⚠️ DUPLICATE IC:</strong>
+            <ul class="mb-0 mt-1">
+              ${icDupes.map(d => `<li><strong>${d.fullName}</strong> (${d.state}) - FIDE ID: <strong>${d.assignedFideId || 'None'}</strong> [${d.source || 'Active'}]</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
         <div class="row g-2 mb-3">
-          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName}</span></div></div>
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName || '-'}</span></div></div>
           <div class="col-md-5">
             <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo}</div></div>
-              <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : ''}</div>
+              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo || '-'}</div></div>
+              <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
             </div>
           </div>
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Remarks</span><span class="cell-content text-muted">${r.stateRemarks || '-'}</span></div></div>
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
+          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">BirthDate (YYYY-MM-DD)</span><span class="cell-content">${r.dob || '-'}</span></div></div>
+          <div class="col-md-3"><div class="grid-cell"><span class="cell-title">Gender</span><span class="cell-content">${r.sex || '-'}</span></div></div>
+          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Remark</span><span class="cell-content text-muted">${r.stateRemarks || '-'}</span></div></div>
           <div class="col-md-6">
             <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-              <div><span class="cell-title">Payment Proof</span><div class="cell-content">Receipt</div></div>
+              <div><span class="cell-title">Payment Proof</span><div class="cell-content">Receipt Attachment</div></div>
               <div>${r.paymentUrl ? `<button type="button" class="btn btn-sm btn-success py-1" onclick="openDocViewer('${r.paymentUrl}', 'Payment Receipt:${r.fullName.replace(/'/g, "\\'")}')">Inspect Receipt 🧾</button>` : '<span class="text-danger small">No Receipt</span>'}</div>
             </div>
           </div>
         </div>
+
+        <hr class="my-3">
 
         <div class="bg-white p-3 border rounded">
           <div class="row g-2 mb-2">
@@ -770,31 +914,35 @@ function renderRoPendingView() {
               <div id="tx-warn-${r.rowIndex}" class="alert alert-warning py-1 px-2 mt-2 small d-none"></div>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Remarks</label>
-              <input type="text" id="rorem-${r.rowIndex}" class="form-control" placeholder="Optional">
+              <label class="form-label fw-semibold">Rating Officer Remarks</label>
+              <input type="text" id="rorem-${r.rowIndex}" class="form-control" placeholder="Remarks (optional)">
             </div>
           </div>
+          
           <div class="d-flex justify-content-end" id="btn-group-${r.rowIndex}">
             <button class="btn btn-outline-danger me-2" onclick="submitRo(${r.rowIndex}, 'REJECTED')">Reject Application</button>
-            <button class="btn btn-success px-4" onclick="submitRo(${r.rowIndex}, 'APPROVED')">Verify & Approve</button>
+            <button class="btn btn-success px-4" onclick="submitRo(${r.rowIndex}, 'APPROVED', ${hasDupe})">Verify & Approve</button>
           </div>
         </div>
       </div>
     </div>`;
   });
+
+  html += `</div>`;
   document.getElementById('content-container').innerHTML = html;
 }
 
-// 5. RO ASSIGN FIDE ID
+// 5. RATING OFFICER: TO BE ASSIGNED FIDE ID
 function renderRoAssignmentView() {
   const assignable = (currentData.records || []).filter(r => r.roStatus === 'APPROVED' && r.fideIdStatus !== 'ASSIGNED');
   if (!assignable.length) {
     document.getElementById('content-container').innerHTML = 
-      `<div class="alert alert-success">No records pending FIDE ID assignment.</div>`;
+      `<div class="alert alert-success">No records currently pending FIDE ID assignment.</div>`;
     return;
   }
 
-  let html = `<div class="mb-3 text-muted small">Verified applications pending ID assignment:</div>`;
+  let html = `<div id="ro-assign-list"><div class="mb-3 text-muted small">Verified applications pending ID assignment:</div>`;
+
   assignable.forEach(r => {
     html += `
     <div class="record-card" id="card-${r.rowIndex}">
@@ -804,16 +952,30 @@ function renderRoAssignmentView() {
           <span class="badge badge-state">${r.state}</span>
           <div class="text-muted small mt-1">Verified: ${r.roActionTime || 'N/A'} | IC: ${r.icNo}</div>
         </div>
-        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
 
       <div class="record-details d-none" id="details-${r.rowIndex}">
         <div class="row g-2 mb-3">
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName}</span></div></div>
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">IC No</span><span class="cell-content">${r.icNo}</span></div></div>
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">BirthDate / Gender</span><span class="cell-content">${r.dob} (${r.sex})</span></div></div>
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email / Mobile</span><span class="cell-content">${r.email} | ${r.mobile}</span></div></div>
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Full Name</span><span class="cell-content">${r.fullName || '-'}</span></div></div>
+          <div class="col-md-5">
+            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
+              <div><span class="cell-title">IC No</span><div class="cell-content">${r.icNo || '-'}</div></div>
+              <div>${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
+            </div>
+          </div>
+          <div class="col-md-7"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
+          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
+          <div class="col-md-4"><div class="grid-cell"><span class="cell-title">BirthDate (YYYY-MM-DD)</span><span class="cell-content">${r.dob || '-'}</span></div></div>
+          <div class="col-md-3"><div class="grid-cell"><span class="cell-title">Gender</span><span class="cell-content">${r.sex || '-'}</span></div></div>
+          <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Remark</span><span class="cell-content text-muted">${r.stateRemarks || '-'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">RO Remark</span><span class="cell-content text-muted">${r.roRemarks || '-'}</span></div></div>
         </div>
+
+        <hr class="my-3">
 
         <div class="bg-white p-3 border rounded">
           <div class="row align-items-end g-2">
@@ -829,10 +991,12 @@ function renderRoAssignmentView() {
       </div>
     </div>`;
   });
+
+  html += `</div>`;
   document.getElementById('content-container').innerHTML = html;
 }
 
-// 6. RO MASTER ARCHIVE
+// 6. RATING OFFICER: SERVER-SIDE MASTER ARCHIVE & SEARCH
 function initRoMasterView() {
   const container = document.getElementById('content-container');
   const distinctStates = currentData.distinctStates || [];
@@ -842,37 +1006,55 @@ function initRoMasterView() {
       <div class="row g-2 align-items-center">
         <div class="col-lg-5 col-md-12">
           <div class="input-group input-group-sm">
-            <select class="form-select flex-grow-0" style="width: 130px;" id="ro-search-field">
+            <select class="form-select flex-grow-0" style="width: 140px; background-color: #f8f9fa;" id="ro-search-field">
               <option value="ALL">All Fields</option>
-              <option value="NAME">Name</option>
-              <option value="IC">IC No</option>
+              <option value="NAME">Full Name</option>
+              <option value="IC">IC Number</option>
               <option value="FIDE">FIDE ID</option>
             </select>
-            <input type="text" class="form-control" id="ro-search-input" placeholder="Search..." onkeydown="if(event.key==='Enter') executeMasterSearch(1)">
-            <button class="btn btn-primary" onclick="executeMasterSearch(1)">Search</button>
+            <input type="text" class="form-control" id="ro-search-input" placeholder="Type search term..." onkeydown="if(event.key==='Enter') executeMasterSearch(1)">
+            <button class="btn btn-primary" type="button" onclick="executeMasterSearch(1)">Search</button>
           </div>
         </div>
+        
         <div class="col-lg-3 col-md-5">
-          <select class="form-select form-select-sm" id="ro-state-filter" onchange="executeMasterSearch(1)">
-            <option value="ALL">All States</option>
-            ${distinctStates.map(st => `<option value="${st}">${st}</option>`).join('')}
-          </select>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-light text-secondary fw-semibold">State</span>
+            <select class="form-select" id="ro-state-filter" onchange="executeMasterSearch(1)">
+              <option value="ALL">All States</option>
+              ${distinctStates.map(st => `<option value="${st}">${st}</option>`).join('')}
+            </select>
+          </div>
         </div>
-        <div class="col-lg-4 col-md-7 text-lg-end">
-          <div class="btn-group btn-group-sm">
+
+        <div class="col-lg-4 col-md-7 text-lg-end text-md-start">
+          <div class="btn-group btn-group-sm flex-wrap" id="ro-status-btn-group">
             <button class="btn btn-primary" onclick="setMasterStatus('ALL')">All</button>
-            <button class="btn btn-outline-primary" onclick="setMasterStatus('ASSIGNED')">Assigned</button>
+            <button class="btn btn-outline-primary" onclick="setMasterStatus('STATE_APPROVED')">State OK</button>
+            <button class="btn btn-outline-primary" onclick="setMasterStatus('RO_APPROVED')">RO OK</button>
+            <button class="btn btn-outline-primary" onclick="setMasterStatus('ASSIGNED')">ID Assigned</button>
             <button class="btn btn-outline-primary" onclick="setMasterStatus('REJECTED')">Rejected</button>
           </div>
         </div>
       </div>
-      <div class="mt-2 text-muted small" id="ro-master-stats">Loading...</div>
+
+      <div class="mt-2 text-muted small d-flex justify-content-between align-items-center">
+        <span id="ro-master-stats">Ready to search.</span>
+        <button class="btn btn-link btn-sm text-decoration-none p-0" onclick="resetMasterFilters()">Reset Filters</button>
+      </div>
     </div>
-    <div id="ro-master-results-container"></div>
+
+    <div id="ro-master-results-container">
+      <div class="text-center py-4">
+        <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+        <span class="ms-2 text-muted">Retrieving records...</span>
+      </div>
+    </div>
+
     <div id="ro-pagination-controls" class="d-flex justify-content-between align-items-center mt-3 d-none">
-      <button class="btn btn-outline-secondary btn-sm" id="btn-prev-page" onclick="executeMasterSearch(masterCurrentPage - 1)">◀ Prev</button>
+      <button class="btn btn-outline-secondary btn-sm" id="btn-prev-page" onclick="executeMasterSearch(masterCurrentPage - 1)">◀ Previous 50</button>
       <span class="text-muted small" id="page-indicator">Page 1</span>
-      <button class="btn btn-outline-secondary btn-sm" id="btn-next-page" onclick="executeMasterSearch(masterCurrentPage + 1)">Next ▶</button>
+      <button class="btn btn-outline-secondary btn-sm" id="btn-next-page" onclick="executeMasterSearch(masterCurrentPage + 1)">Next 50 ▶</button>
     </div>`;
 
   executeMasterSearch(1);
@@ -880,7 +1062,24 @@ function initRoMasterView() {
 
 function setMasterStatus(statusVal) {
   currentFilter = statusVal;
+  const btnGroup = document.getElementById('ro-status-btn-group');
+  if (btnGroup) {
+    const buttons = btnGroup.querySelectorAll('button');
+    const statusMap = ['ALL', 'STATE_APPROVED', 'RO_APPROVED', 'ASSIGNED', 'REJECTED'];
+    buttons.forEach((btn, idx) => {
+      const match = statusMap[idx] === statusVal;
+      btn.className = `btn btn-sm ${match ? 'btn-primary' : 'btn-outline-primary'}`;
+    });
+  }
   executeMasterSearch(1);
+}
+
+function resetMasterFilters() {
+  document.getElementById('ro-search-input').value = '';
+  document.getElementById('ro-search-field').value = 'ALL';
+  document.getElementById('ro-state-filter').value = 'ALL';
+  currentFilter = 'ALL';
+  setMasterStatus('ALL');
 }
 
 function executeMasterSearch(page) {
@@ -889,11 +1088,17 @@ function executeMasterSearch(page) {
   const statsBox = document.getElementById('ro-master-stats');
   const pagControls = document.getElementById('ro-pagination-controls');
 
+  if (!resultsBox) return;
+
   const q = document.getElementById('ro-search-input')?.value || '';
   const sField = document.getElementById('ro-search-field')?.value || 'ALL';
   const stFilter = document.getElementById('ro-state-filter')?.value || 'ALL';
 
-  resultsBox.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div></div>`;
+  resultsBox.innerHTML = `
+    <div class="text-center py-4">
+      <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+      <span class="ms-2 text-muted">Loading results...</span>
+    </div>`;
 
   callApi({
     action: 'queryMaster',
@@ -911,10 +1116,13 @@ function executeMasterSearch(page) {
 
     const list = res.records || [];
     masterCurrentPage = res.currentPage || 1;
-    statsBox.innerHTML = `Found <strong>${res.totalMatches}</strong> records (Page ${masterCurrentPage} of ${res.totalPages})`;
+    const totalPages = res.totalPages || 1;
+    const totalMatches = res.totalMatches || 0;
+
+    statsBox.innerHTML = `Found <strong>${totalMatches}</strong> matching records ${stFilter !== 'ALL' ? 'in <strong>' + stFilter + '</strong>' : ''} (Page ${masterCurrentPage} of ${totalPages})`;
 
     if (!list.length) {
-      resultsBox.innerHTML = `<div class="alert alert-info">No records found.</div>`;
+      resultsBox.innerHTML = `<div class="alert alert-info">No records found matching your search and filter criteria.</div>`;
       pagControls.classList.add('d-none');
       return;
     }
@@ -926,41 +1134,107 @@ function executeMasterSearch(page) {
         <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
           <div>
             <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
-            <span class="badge badge-state me-1">${r.state}</span>
+            <span class="badge badge-state me-2">${r.state}</span>
+            <span class="status-badge ${r.roStatus === 'APPROVED' ? 'status-approved' : (r.roStatus === 'REJECTED' ? 'status-rejected' : 'status-pending')} me-1">RO: ${r.roStatus}</span>
             ${r.assignedFideId ? `<span class="badge bg-dark">FIDE ID: ${r.assignedFideId}</span>` : ''}
             <div class="text-muted small mt-1">Submitted: ${r.timestamp} | IC: ${r.icNo}</div>
           </div>
-          <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}">View Details ▼</button>
+          <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
         </div>
+
         <div class="record-details d-none" id="details-${r.rowIndex}">
-          <div class="small">FIDE ID: <strong>${r.assignedFideId || 'Pending'}</strong> | Assigned At: <strong>${r.fideAssignedTime || 'N/A'}</strong></div>
-          <div class="small">RO: <strong>${r.roStatus}</strong> (Reviewer: ${r.roReviewer || 'N/A'})</div>
+          <div class="row g-2 mb-2">
+            <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Full Name per IC</span><span class="cell-content">${r.fullName}</span></div></div>
+            <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
+            <div class="col-md-4"><div class="grid-cell"><span class="cell-title">IC / Identification No</span><span class="cell-content">${r.icNo}</span></div></div>
+            <div class="col-md-4"><div class="grid-cell"><span class="cell-title">DOB / Sex</span><span class="cell-content">${r.dob} (${r.sex})</span></div></div>
+            <div class="col-md-4"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state}</span></div></div>
+            <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email}</span></div></div>
+            <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Contact Number</span><span class="cell-content">${r.mobile}</span></div></div>
+            <div class="col-12"><div class="grid-cell"><span class="cell-title">Residing Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
+            
+            <div class="col-12 mt-2">
+              ${r.icUrl ? `<button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC Document 🔍</button>` : ''}
+              ${r.paymentUrl ? `<button type="button" class="btn btn-sm btn-outline-info" onclick="openDocViewer('${r.paymentUrl}', 'Payment Receipt:${r.fullName.replace(/'/g, "\\'")}')">Inspect Payment Receipt 🧾</button>` : ''}
+            </div>
+          </div>
+
+          <hr class="my-3">
+
+          <div class="bg-white p-3 border rounded mb-2">
+            <h6 class="fw-bold text-dark mb-3">Audit Trail & Action Details</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="p-2 border rounded bg-light">
+                  <span class="fw-bold text-primary d-block mb-1">State Administration</span>
+                  <small class="text-muted d-block">Status: <strong>${r.stateStatus}</strong></small>
+                  <small class="text-muted d-block">Reviewer Name: <strong>${r.stateReviewer || 'N/A'}</strong></small>
+                  <small class="text-muted d-block">Action Timestamp: <strong>${r.stateActionTime || 'N/A'}</strong></small>
+                  <small class="text-muted d-block mt-1">Remarks: <span class="fst-italic text-dark">${r.stateRemarks || 'None recorded'}</span></small>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="p-2 border rounded bg-light">
+                  <span class="fw-bold text-success d-block mb-1">Rating Officer Review</span>
+                  <small class="text-muted d-block">Status: <strong>${r.roStatus}</strong></small>
+                  <small class="text-muted d-block">Reviewer Name: <strong>${r.roReviewer || 'N/A'}</strong></small>
+                  <small class="text-muted d-block">Transaction No: <code>${r.transactionNo || 'N/A'}</code></small>
+                  <small class="text-muted d-block">Action Timestamp: <strong>${r.roActionTime || 'N/A'}</strong></small>
+                  <small class="text-muted d-block mt-1">Remarks: <span class="fst-italic text-dark">${r.roRemarks || 'None recorded'}</span></small>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="p-2 border rounded bg-light">
+                  <span class="fw-bold text-dark d-block mb-1">FIDE ID Assignment</span>
+                  <small class="text-muted d-block">Assigned FIDE ID: <strong class="fs-6 text-primary">${r.assignedFideId || 'Not assigned yet'}</strong></small>
+                  <small class="text-muted d-block">Assignment Timestamp: <strong>${r.fideAssignedTime || 'N/A'}</strong></small>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>`;
     });
+
     resultsBox.innerHTML = html;
 
-    if (res.totalPages > 1) {
+    if (totalPages > 1) {
       pagControls.classList.remove('d-none');
-      document.getElementById('page-indicator').innerText = `Page ${masterCurrentPage} of ${res.totalPages}`;
+      document.getElementById('page-indicator').innerText = `Page ${masterCurrentPage} of ${totalPages}`;
       document.getElementById('btn-prev-page').disabled = (masterCurrentPage <= 1);
-      document.getElementById('btn-next-page').disabled = (masterCurrentPage >= res.totalPages);
+      document.getElementById('btn-next-page').disabled = (masterCurrentPage >= totalPages);
     } else {
       pagControls.classList.add('d-none');
     }
   });
 }
 
-// ACTION DISPATCHERS
+// 7. ACTION HANDLERS
 function submitState(rowIndex, status, isDupe) {
   const token = getToken();
   const remarks = document.getElementById(`rem-${rowIndex}`).value;
-  if (status === 'APPROVED' && isDupe && !confirm("⚠️ DUPLICATE IC DETECTED! Proceed?")) return;
+  
+  if (status === 'APPROVED' && isDupe) {
+    if (!confirm("⚠️ CAUTION: Duplicate IC detected!\nAre you sure you want to approve this application?")) return;
+  }
+  if (status === 'REJECTED' && !remarks.trim()) {
+    if (!confirm("Reject without remarks? It is recommended to provide a rejection reason.")) return;
+  }
 
   const btnGroup = document.getElementById(`btn-group-${rowIndex}`);
-  if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Saving...`;
+  if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Updating database...`;
 
-  removeCardLocally(rowIndex);
+  removeCardLocally(rowIndex, () => {
+    const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
+    if (idx !== -1) {
+      currentData.records[idx].stateStatus = status;
+      currentData.records[idx].stateRemarks = remarks;
+      currentData.records[idx].stateActionTime = new Date().toLocaleString();
+      currentData.records[idx].stateReviewer = currentData.user.name;
+    }
+  });
 
   callApi({
     action: 'updateStateReview',
@@ -969,24 +1243,83 @@ function submitState(rowIndex, status, isDupe) {
     status: status,
     remarks: remarks
   }, res => {
-    if (!res.success) alert("Error: " + res.error);
+    if (!res.success) alert("Error updating record: " + res.error);
   });
 }
 
-function submitRo(rowIndex, status) {
+function reEvaluateState(rowIndex, status) {
+  const token = getToken();
+  const remarks = document.getElementById(`rem-${rowIndex}`).value;
+
+  if (!confirm(`Are you sure you want to change this application's status to ${status}?`)) return;
+
+  const btnGroup = document.getElementById(`btn-group-${rowIndex}`);
+  if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Saving changes...`;
+
+  const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
+  if (idx !== -1) {
+    currentData.records[idx].stateStatus = status;
+    currentData.records[idx].stateRemarks = remarks;
+  }
+
+  callApi({
+    action: 'updateStateReview',
+    token: token,
+    rowIndex: rowIndex,
+    status: status,
+    remarks: remarks
+  }, res => {
+    if (!res.success) alert("Error saving re-evaluation: " + res.error);
+    renderStateHistoryView();
+  }, err => {
+    alert("Connection error: " + err.message);
+    renderStateHistoryView();
+  });
+}
+
+function submitRo(rowIndex, status, isDupe) {
   const token = getToken();
   const tx = document.getElementById(`tx-${rowIndex}`).value;
   const remarks = document.getElementById(`rorem-${rowIndex}`).value;
+  
+  if (status === 'APPROVED') {
+    if (!tx.trim()) {
+      alert("Please enter the Payment Transaction Number before approving.");
+      return;
+    }
+    const clean = cleanKey(tx);
+    const txMap = currentData.txMap || {};
+    const dupeTx = txMap[clean];
+    if (dupeTx && dupeTx.rowIndex !== rowIndex) {
+      if (!confirm(`⛔ WARNING: Transaction No "${tx}" is already registered to "${dupeTx.fullName}" (${dupeTx.state}) [${dupeTx.source || 'Active Sheet'}]!\n\nAre you sure you want to approve?`)) {
+        return;
+      }
+    }
+    if (isDupe && !confirm("⚠️ CAUTION: Player IC was flagged as a potential duplicate.\nProceed to approve?")) {
+      return;
+    }
 
-  if (status === 'APPROVED' && !tx.trim()) {
-    alert("Please enter Transaction Number.");
-    return;
+    currentData.txMap[clean] = {
+      rowIndex: rowIndex,
+      fullName: currentData.records.find(r => r.rowIndex === rowIndex)?.fullName || 'Applicant',
+      state: 'Active'
+    };
   }
 
   const btnGroup = document.getElementById(`btn-group-${rowIndex}`);
-  if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Saving...`;
+  if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Updating database...`;
 
-  removeCardLocally(rowIndex);
+  removeCardLocally(rowIndex, () => {
+    const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
+    if (idx !== -1) {
+      currentData.records[idx].roStatus = status;
+      currentData.records[idx].roRemarks = remarks;
+      currentData.records[idx].transactionNo = tx;
+      currentData.records[idx].roActionTime = new Date().toLocaleString();
+      currentData.records[idx].roReviewer = currentData.user.name;
+      if (status === 'APPROVED') currentData.records[idx].fideIdStatus = 'PENDING';
+    }
+  });
 
   callApi({
     action: 'updateRoReview',
@@ -996,23 +1329,30 @@ function submitRo(rowIndex, status) {
     remarks: remarks,
     transactionNo: tx
   }, res => {
-    if (!res.success) alert("Error: " + res.error);
+    if (!res.success) alert("Error updating review: " + res.error);
   });
 }
 
 function submitFide(rowIndex) {
   const token = getToken();
   const id = document.getElementById(`fide-${rowIndex}`).value;
-
+  
   if (!id.trim()) {
-    alert("Please enter assigned FIDE ID.");
+    alert("Please enter the assigned FIDE ID.");
     return;
   }
 
   const btnGroup = document.getElementById(`btn-group-${rowIndex}`);
   if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Saving ID...`;
 
-  removeCardLocally(rowIndex);
+  removeCardLocally(rowIndex, () => {
+    const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
+    if (idx !== -1) {
+      currentData.records[idx].fideIdStatus = 'ASSIGNED';
+      currentData.records[idx].assignedFideId = id;
+      currentData.records[idx].fideAssignedTime = new Date().toLocaleString();
+    }
+  });
 
   callApi({
     action: 'assignFideId',
@@ -1020,7 +1360,7 @@ function submitFide(rowIndex) {
     rowIndex: rowIndex,
     fideId: id
   }, res => {
-    if (!res.success) alert("Error: " + res.error);
+    if (!res.success) alert("Error saving FIDE ID: " + res.error);
   });
 }
 </script>
