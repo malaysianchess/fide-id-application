@@ -199,7 +199,7 @@
 // >>>>> REPLACE WITH YOUR APPS SCRIPT WEB APP URL HERE <<<<<
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeGB_EjrqjntXqllfmE_S1R1bZoYW6D4u3P6bealKINBz24wqhBP20plmOLqao2O6-/exec";
 
-async function handleSearch(e) {
+function handleSearch(e) {
   e.preventDefault();
   const ic = document.getElementById('ic-input').value.trim();
   const btn = document.getElementById('btn-search');
@@ -211,10 +211,28 @@ async function handleSearch(e) {
   alertBox.className = "alert d-none mt-3 small";
   resultsBox.innerHTML = '';
 
-  try {
-    const res = await fetch(`${SCRIPT_URL}?action=checkPublicStatus&ic=${encodeURIComponent(ic)}`);
-    const data = await res.json();
+  // Generate a unique callback function name
+  const callbackName = 'mcfCallback_' + Math.round(100000 * Math.random());
 
+  // Timeout handler in case Google is slow or unreachable (15 seconds)
+  const timeoutId = setTimeout(() => {
+    cleanup();
+    btn.disabled = false;
+    btn.innerHTML = "Search Status";
+    alertBox.className = "alert alert-danger mt-3 small";
+    alertBox.innerHTML = "Request timed out. Please verify your connection and try again.";
+  }, 15000);
+
+  function cleanup() {
+    clearTimeout(timeoutId);
+    delete window[callbackName];
+    const scriptEl = document.getElementById(callbackName);
+    if (scriptEl) scriptEl.remove();
+  }
+
+  // Define global callback to receive Google's response
+  window[callbackName] = function(data) {
+    cleanup();
     btn.disabled = false;
     btn.innerHTML = "Search Status";
 
@@ -225,12 +243,21 @@ async function handleSearch(e) {
     }
 
     renderResults(data.results);
-  } catch (err) {
+  };
+
+  // Inject script tag (JSONP call - immune to CORS / redirect blocks)
+  const script = document.createElement('script');
+  script.id = callbackName;
+  script.src = `${SCRIPT_URL}?action=checkPublicStatus&ic=${encodeURIComponent(ic)}&callback=${callbackName}`;
+  script.onerror = function() {
+    cleanup();
     btn.disabled = false;
     btn.innerHTML = "Search Status";
     alertBox.className = "alert alert-danger mt-3 small";
-    alertBox.innerHTML = "Connection error: Unable to retrieve records. Please try again later.";
-  }
+    alertBox.innerHTML = "Connection error: Unable to retrieve records. Please ensure your deployment is set to 'Anyone'.";
+  };
+
+  document.body.appendChild(script);
 }
 
 function renderResults(records) {
