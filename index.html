@@ -5,8 +5,8 @@
   <title>Check FIDE ID Status - Malaysian Chess Federation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- MCF Favicon -->
-<link rel="icon" type="image/png" href="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png">
-<link rel="apple-touch-icon" href="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png">
+  <link rel="icon" type="image/png" href="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png">
+  <link rel="apple-touch-icon" href="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
     body {
@@ -87,6 +87,18 @@
       width: 1px;
       background-color: #dee2e6;
       margin: 0 14px;
+    }
+
+    /* Stacked Search Button */
+    .btn-search-main {
+      border-radius: 8px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: all 0.2s ease;
+    }
+    .btn-search-main:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.22);
     }
 
     /* Segmented Multi-Stage Stepper */
@@ -253,14 +265,26 @@
     <h4 class="text-center fw-bold mb-1">Check FIDE ID Status</h4>
     <p class="text-center text-muted small mb-4">Malaysian Chess Federation (MCF) Public Inquiry</p>
 
+    <!-- Stacked Form Layout -->
     <form onsubmit="handleSearch(event)">
       <div class="mb-3">
-        <label class="form-label small fw-semibold text-secondary">IC / Identification No (with or without dashes)</label>
-        <div class="input-group input-group-lg">
-          <input type="text" id="ic-input" class="form-control fs-6" placeholder="e.g. 050312-14-0303 or 050312140303" required autocomplete="off">
-          <button type="submit" id="btn-search" class="btn btn-primary fw-semibold px-4">Search Status</button>
-        </div>
+        <label for="ic-input" class="form-label small fw-semibold text-secondary">
+          IC / Identification No (with or without dashes)
+        </label>
+        <!-- Line 1: Full-width Input Field -->
+        <input type="text" 
+               id="ic-input" 
+               class="form-control form-control-lg fs-6" 
+               placeholder="e.g. 050312-14-0303 or 050312140303" 
+               inputmode="numeric" 
+               pattern="[0-9\-]*" 
+               required 
+               autocomplete="off">
       </div>
+      <!-- Line 2: Full-width Dedicated Search Action -->
+      <button type="submit" id="btn-search" class="btn btn-primary btn-search-main w-100 py-2 fs-6">
+        Search Status 🔍
+      </button>
     </form>
 
     <div id="search-alert" class="alert d-none mt-3 small"></div>
@@ -280,7 +304,6 @@
       </div>
       <div class="modal-body p-4">
         
-
         <h6 class="fw-bold text-primary mb-2">❓ Frequently Asked Questions (FAQ)</h6>
         <div class="accordion accordion-flush small border rounded" id="faqAccordion">
           <div class="accordion-item">
@@ -291,7 +314,7 @@
             </h2>
             <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
               <div class="accordion-body text-secondary">
-                Applications typically take <strong>3 to 7 working days</strong>, depending on how quickly your State Association verifies the submission and MCF register to the FIDE Ratings server.
+                Applications typically take <strong>3 to 7 working days</strong>, depending on how quickly your State Association verifies the submission and MCF registers to the FIDE Ratings server.
               </div>
             </div>
           </div>
@@ -405,7 +428,7 @@ function handleSearch(e) {
     if (completed) return;
     cleanup();
     btn.disabled = false;
-    btn.innerHTML = "Search Status";
+    btn.innerHTML = "Search Status 🔍";
     alertBox.className = "alert alert-danger mt-3 small";
     alertBox.innerHTML = "Request timed out. Please check your internet connection.";
   }, 15000);
@@ -414,7 +437,7 @@ function handleSearch(e) {
     clearTimeout(timer);
     cleanup();
     btn.disabled = false;
-    btn.innerHTML = "Search Status";
+    btn.innerHTML = "Search Status 🔍";
 
     if (!data || !data.success) {
       alertBox.className = "alert alert-warning mt-3 small";
@@ -437,7 +460,7 @@ function handleSearch(e) {
     clearTimeout(timer);
     cleanup();
     btn.disabled = false;
-    btn.innerHTML = "Search Status";
+    btn.innerHTML = "Search Status 🔍";
     alertBox.className = "alert alert-danger mt-3 small";
     alertBox.innerHTML = "Unable to connect to MCF database. Please try again later.";
   };
