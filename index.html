@@ -31,19 +31,39 @@
       color: #ffffff;
       font-weight: 600;
       border-radius: 8px;
-      padding: 10px 22px;
+      padding: 9px 18px;
       transition: all 0.2s ease;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 6px;
       border: none;
+      font-size: 0.92rem;
     }
     .btn-apply-cta:hover {
       background-color: #0b5ed7;
       color: #ffffff;
       transform: translateY(-1px);
       box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
+    }
+    .btn-faq-cta {
+      background-color: #ffffff;
+      color: #0d6efd;
+      border: 1px solid #b6d4fe;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 9px 16px;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.92rem;
+    }
+    .btn-faq-cta:hover {
+      background-color: #f0f6ff;
+      color: #0b5ed7;
+      border-color: #8bb9fe;
+      transform: translateY(-1px);
     }
 
     .search-card {
@@ -195,17 +215,20 @@
 
   <!-- 1. NEW APPLICANT CALL-TO-ACTION BANNER -->
   <div class="apply-banner-card p-3 p-md-4">
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
       <div>
         <div class="d-flex align-items-center gap-2 mb-1">
           <span class="badge bg-primary px-2 py-1">New Registration</span>
           <h6 class="fw-bold mb-0 text-dark">Need a new FIDE ID?</h6>
         </div>
         <p class="text-secondary small mb-0">
-          Submit your official player registration through this Form.
+          Submit your official player registration through the Malaysian Chess Federation Google Form.
         </p>
       </div>
-      <div>
+      <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn-faq-cta" data-bs-toggle="modal" data-bs-target="#guideModal">
+          📖 Guide & FAQ
+        </button>
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSfHMVbq1tlGSlvfXDOJsqn6qoPjLlHLuTPP0eZ0eMiu3Wa7zg/viewform" 
            target="_blank" 
            rel="noopener noreferrer" 
@@ -244,6 +267,81 @@
   <div id="results-container" class="mx-auto" style="max-width: 680px;"></div>
 </div>
 
+<!-- 4. GUIDE & FAQ MODAL -->
+<div class="modal fade" id="guideModal" tabindex="-1" aria-labelledby="guideModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title fw-bold" id="guideModalLabel">📖 FIDE ID Registration Guide & FAQ</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        
+
+        <h6 class="fw-bold text-primary mb-2">❓ Frequently Asked Questions (FAQ)</h6>
+        <div class="accordion accordion-flush small border rounded" id="faqAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                How long does the verification process take?
+              </button>
+            </h2>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-secondary">
+                Applications typically take <strong>3 to 7 working days</strong>, depending on how quickly your State Association verifies the submission and MCF register to the FIDE Ratings server.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                What documents do I need to prepare before applying?
+              </button>
+            </h2>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-secondary">
+                1. Clear photo or PDF of player's <strong>MyKad / MyKid</strong>.<br>
+                2. <strong>Payment Receipt</strong> showing the bank reference number and transaction amount of <strong>RM50<strong>.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                Why is my search showing "No record found"?
+              </button>
+            </h2>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-secondary">
+                Double-check the IC number entered without typos. If you submitted within the last 15 minutes, please allow a short buffer for the submission to sync with the system.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                What should I do if my application is rejected?
+              </button>
+            </h2>
+            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-secondary">
+                The reason for rejection will appear in a red notice banner on your search result. Kindly resubmit the form with the correct details.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer bg-light py-2">
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfHMVbq1tlGSlvfXDOJsqn6qoPjLlHLuTPP0eZ0eMiu3Wa7zg/viewform" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm fw-semibold">
+          Open Application Form ↗
+        </a>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <footer class="portal-footer mt-5">
   <div class="container text-center">
     <div class="row align-items-center">
@@ -254,12 +352,15 @@
       <div class="col-md-6 text-md-end small">
         <a href="https://ratings.fide.com" target="_blank" rel="noopener noreferrer">FIDE Ratings Portal</a> &nbsp;|&nbsp; 
         <a href="https://malaysiachess.org" target="_blank" rel="noopener noreferrer">Official MCF Website</a> &nbsp;|&nbsp;
-        <a href="admin.html" class="text-decoration-none fw-bold text-secondary">🔒 Admin Portal</a>
+        <a href="admin.html" class="text-decoration-none fw-bold text-secondary">Admin Portal</a>
         <div class="text-muted mt-1">&copy; 2026 Malaysian Chess Federation. All Rights Reserved.</div>
       </div>
     </div>
   </div>
 </footer>
+
+<!-- Bootstrap JS (Required for modal functionality) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
 // Cloudflare Worker Proxy Endpoint
