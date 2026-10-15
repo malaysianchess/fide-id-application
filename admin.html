@@ -744,25 +744,23 @@ function executeSaveFieldEdit(rowIndex, fieldKey, newValue) {
     token: token,
     rowIndex: rowIndex,
     fieldKey: fieldKey,
-    newValue: newValue
+    newValue: newValue,
+    ic: oldIc // <-- Passes previous IC to locate row before field update
   }, res => {
     if (!res.success) {
       Swal.fire('Error', res.error || 'Failed to update field.', 'error');
       return;
     }
 
-    // 1. Update In-Memory Record
     record[fieldKey] = newValue;
     if (res.originalData) {
       record.originalData = res.originalData;
     }
 
-    // 2. If IC changed, trigger instant duplicate recalculation
     if (fieldKey === 'icNo') {
       recalculateLiveIcDuplicates(rowIndex, oldIc, newValue);
     }
 
-    // 3. Re-render UI to update cards, badges, and duplicate warnings immediately
     Swal.fire({
       icon: 'success',
       title: 'Updated Successfully',
@@ -775,7 +773,7 @@ function executeSaveFieldEdit(rowIndex, fieldKey, newValue) {
     Swal.fire('Connection Error', err.message, 'error');
   });
 }
-
+  
 function recalculateLiveIcDuplicates(rowIndex, oldIc, newIc) {
   const cleanNew = cleanKey(newIc);
 
@@ -1510,6 +1508,8 @@ function submitPrecheckTx(rowIndex) {
   const token = getToken();
   const tx = document.getElementById(`tx-${rowIndex}`).value.trim();
   const remarks = document.getElementById(`rorem-${rowIndex}`).value.trim();
+  const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const ic = record ? record.icNo : '';
 
   if (!tx) {
     alert("Please enter a Payment Transaction Number to pre-check.");
@@ -1532,7 +1532,7 @@ function submitPrecheckTx(rowIndex) {
   }
   currentData.txMap[clean] = {
     rowIndex: rowIndex,
-    fullName: currentData.records.find(r => r.rowIndex === rowIndex)?.fullName || 'Applicant',
+    fullName: record?.fullName || 'Applicant',
     state: 'Active'
   };
 
@@ -1546,7 +1546,8 @@ function submitPrecheckTx(rowIndex) {
     token: token,
     rowIndex: rowIndex,
     transactionNo: tx,
-    remarks: remarks
+    remarks: remarks,
+    ic: ic // <-- Passes IC
   }, res => {
     btn.disabled = false;
     btn.innerHTML = `Saved! ✔️`;
@@ -1559,10 +1560,12 @@ function submitPrecheckTx(rowIndex) {
     alert("Connection error: " + err.message);
   });
 }
-
+  
 function submitState(rowIndex, status, isDupe) {
   const token = getToken();
   const remarks = document.getElementById(`rem-${rowIndex}`).value;
+  const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const ic = record ? record.icNo : '';
   
   if (status === 'APPROVED' && isDupe) {
     if (!confirm("⚠️ CAUTION: Duplicate IC detected!\nAre you sure you want to approve this application?")) return;
@@ -1589,7 +1592,8 @@ function submitState(rowIndex, status, isDupe) {
     token: token,
     rowIndex: rowIndex,
     status: status,
-    remarks: remarks
+    remarks: remarks,
+    ic: ic // <-- Passes IC
   }, res => {
     if (!res.success) alert("Error updating record: " + res.error);
   });
@@ -1629,6 +1633,8 @@ function submitRo(rowIndex, status, isDupe) {
   const token = getToken();
   const tx = document.getElementById(`tx-${rowIndex}`).value;
   const remarks = document.getElementById(`rorem-${rowIndex}`).value;
+  const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const ic = record ? record.icNo : '';
   
   if (status === 'APPROVED') {
     if (!tx.trim()) {
@@ -1649,7 +1655,7 @@ function submitRo(rowIndex, status, isDupe) {
 
     currentData.txMap[clean] = {
       rowIndex: rowIndex,
-      fullName: currentData.records.find(r => r.rowIndex === rowIndex)?.fullName || 'Applicant',
+      fullName: record?.fullName || 'Applicant',
       state: 'Active'
     };
   }
@@ -1675,7 +1681,8 @@ function submitRo(rowIndex, status, isDupe) {
     rowIndex: rowIndex,
     status: status,
     remarks: remarks,
-    transactionNo: tx
+    transactionNo: tx,
+    ic: ic // <-- Passes IC
   }, res => {
     if (!res.success) alert("Error updating review: " + res.error);
   });
@@ -1684,6 +1691,8 @@ function submitRo(rowIndex, status, isDupe) {
 function submitFide(rowIndex) {
   const token = getToken();
   const id = document.getElementById(`fide-${rowIndex}`).value;
+  const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const ic = record ? record.icNo : '';
   
   if (!id.trim()) {
     alert("Please enter the assigned FIDE ID.");
@@ -1706,7 +1715,8 @@ function submitFide(rowIndex) {
     action: 'assignFideId',
     token: token,
     rowIndex: rowIndex,
-    fideId: id
+    fideId: id,
+    ic: ic // <-- Passes IC so the correct row is targeted
   }, res => {
     if (!res.success) alert("Error saving FIDE ID: " + res.error);
   });
