@@ -1230,6 +1230,7 @@ function renderRoPendingView() {
 }
 
 // 5. RATING OFFICER: TO BE ASSIGNED FIDE ID
+// 5. RATING OFFICER: TO BE ASSIGNED FIDE ID
 function renderRoAssignmentView() {
   const assignable = (currentData.records || []).filter(r => r.roStatus === 'APPROVED' && r.fideIdStatus !== 'ASSIGNED');
   if (!assignable.length) {
@@ -1241,6 +1242,16 @@ function renderRoAssignmentView() {
   let html = `<div id="ro-assign-list"><div class="mb-3 text-muted small">Verified applications pending ID assignment:</div>`;
 
   assignable.forEach(r => {
+    // Check if either Last Name or First Name was edited from the original submission
+    const origFirst = (r.originalData && r.originalData.firstName) ? String(r.originalData.firstName).trim() : '';
+    const origLast = (r.originalData && r.originalData.lastName) ? String(r.originalData.lastName).trim() : '';
+    const curFirst = r.firstName ? String(r.firstName).trim() : '';
+    const curLast = r.lastName ? String(r.lastName).trim() : '';
+    const isNameModified = Boolean((origFirst && curFirst && origFirst.toLowerCase() !== curFirst.toLowerCase()) ||
+                                   (origLast && curLast && origLast.toLowerCase() !== curLast.toLowerCase()));
+
+    const combinedFideName = `${curLast || '-'}, ${curFirst || '-'}`;
+
     html += `
     <div class="record-card" id="card-${r.rowIndex}">
       <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
@@ -1254,15 +1265,31 @@ function renderRoAssignmentView() {
 
       <div class="record-details d-none" id="details-${r.rowIndex}">
         <div class="row g-2 mb-3">
-          <div class="col-md-7">${renderEditableCell(r, 'fullName', 'Full Name', true)}</div>
+          <div class="col-md-7">${renderEditableCell(r, 'fullName', 'Full Name per IC', true)}</div>
           <div class="col-md-5">
             <div class="d-flex gap-2">
               <div class="flex-grow-1">${renderEditableCell(r, 'icNo', 'IC No', true)}</div>
               <div class="align-self-center pt-3">${r.icUrl ? `<button type="button" class="btn btn-sm btn-primary py-1" onclick="openDocViewer('${r.icUrl}', 'IC Verification:${r.fullName.replace(/'/g, "\\'")}')">Inspect IC 🔍</button>` : '<span class="text-muted small">No IC</span>'}</div>
             </div>
           </div>
-          <div class="col-md-4">${renderEditableCell(r, 'firstName', 'First Name', true)}</div>
-          <div class="col-md-4">${renderEditableCell(r, 'lastName', 'Last Name', true)}</div>
+
+          <!-- COMBINED [LAST NAME, FIRST NAME] CELL -->
+          <div class="col-md-8">
+            <div class="grid-cell ${isNameModified ? 'cell-modified' : ''}" id="cell-container-combinedName-${r.rowIndex}">
+              <span class="cell-title">
+                <span>
+                  Last Name, First Name
+                  ${isNameModified ? `<span class="badge-edited-indicator" title="Original: ${origLast},${origFirst}">✏️ Edited (Orig: ${origLast},${origFirst})</span>` : ''}
+                </span>
+                <span class="d-flex gap-1">
+                  <button type="button" class="btn-edit-field" title="Edit Last Name" onclick="openEditFieldModal(${r.rowIndex}, 'lastName', 'Last Name')">✏️ Last</button>
+                  <button type="button" class="btn-edit-field" title="Edit First Name" onclick="openEditFieldModal(${r.rowIndex}, 'firstName', 'First Name')">✏️ First</button>
+                </span>
+              </span>
+              <span class="cell-content text-primary fs-6" id="cell-val-combinedName-${r.rowIndex}">${combinedFideName}</span>
+            </div>
+          </div>
+
           <div class="col-md-4"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
           <div class="col-md-4">${renderEditableCell(r, 'dob', 'BirthDate (YYYY-MM-DD)', true)}</div>
           <div class="col-md-3">${renderEditableCell(r, 'sex', 'Gender', true)}</div>
