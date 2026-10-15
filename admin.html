@@ -1074,15 +1074,20 @@ function renderRoPendingStateView() {
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
           
           <div class="col-md-6">
-            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-              <div><span class="cell-title">Payment Proof</span><div class="cell-content">Receipt Attachment</div></div>
-              <div>${r.paymentUrl ? `<button type="button" class="btn btn-sm btn-success py-1" onclick="openDocViewer('${r.paymentUrl}', 'Payment Receipt:${r.fullName.replace(/'/g, "\\'")}')">Inspect Receipt 🧾</button>` : '<span class="text-danger small">No Receipt</span>'}</div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="grid-cell"><span class="cell-title">Saved Tx No</span><span class="cell-content text-primary"><code>${r.transactionNo || 'None yet'}</code></span></div>
-          </div>
-        </div>
+  <div class="grid-cell">
+    <span class="cell-title">State Remark</span>
+    <span class="cell-content text-muted">${r.stateRemarks || '-'}</span>
+    <div class="mt-1 pt-1 border-top" style="font-size: 0.78rem; color: #495057;">
+      👤 Approved by: <strong class="text-primary">${r.stateReviewer \vert{}\vert{} 'State Admin'}</strong>${r.stateActionTime ? `<span class="text-muted">(${r.stateActionTime})</span>` : ''}
+    </div>
+  </div>
+</div>
+<div class="col-md-6">
+  <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
+    <div><span class="cell-title">Payment Proof</span><div class="cell-content">Receipt Attachment</div></div>
+    <div>${r.paymentUrl ? `<button type="button" class="btn btn-sm btn-success py-1" onclick="openDocViewer('${r.paymentUrl}', 'Payment Receipt: ${r.fullName.replace(/'/g, "\\'")}')">Inspect Receipt 🧾</button>` : '<span class="text-danger small">No Receipt</span>'}</div>
+  </div>
+</div>
 
         <!-- 1. RO PRE-CHECK PAYMENT BLOCK -->
         <div class="bg-white p-3 border rounded mb-3" style="background-color: #f0f7ff !important;">
