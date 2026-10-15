@@ -326,7 +326,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-// Cloudflare Worker Proxy URL
 const SCRIPT_URL = "https://fide-id-app.mcf-ratings.workers.dev/";
 
 // ==========================================
@@ -428,7 +427,6 @@ function isOlderThan7Days(timestampStr) {
   return ((new Date().getTime() - d.getTime()) / (1000 * 3600 * 24)) > 7;
 }
 
-// Adjust subsequent row indices locally after a row is removed from Google Sheets
 function adjustLocalRowIndicesAfterDelete(deletedRowIndex) {
   (currentData.records || []).forEach(r => {
     if (!r.isArchived && r.rowIndex > deletedRowIndex) {
@@ -1143,7 +1141,7 @@ function renderRoPendingView() {
           <span class="badge badge-state">${r.state}</span>
           ${isPrechecked ? '<span class="badge badge-precheck ms-1">✔️ Pre-checked Tx Available</span>' : ''}
           ${hasDupe ? '<span class="badge badge-duplicate ms-1">⚠️ IC Duplicate</span>' : ''}
-          <div class="text-muted small mt-1">State OK: ${r.stateActionTime || 'N/A'} by <strong>${r.stateReviewer || 'State Admin'}</strong> | IC: ${r.icNo}</div>
+          <div class="text-muted small mt-1">State OK: ${r.stateActionTime || 'N/A'} | IC: ${r.icNo}</div>
         </div>
         <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
@@ -1175,16 +1173,18 @@ function renderRoPendingView() {
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
           
-          <!-- STATE APPROVER INFORMATION -->
+          <!-- STATE APPROVAL & REMARKS (REVISED FOCUS) -->
           <div class="col-md-6">
-            <div class="grid-cell" style="background-color: #f8fbff; border-left: 3px solid #0d6efd;">
-              <span class="cell-title">State Approval Details</span>
-              <div class="cell-content fs-6 text-dark">
-                👤 Approved by: <strong class="text-primary">${r.stateReviewer || 'State Admin'}</strong>
+            <div class="grid-cell" style="background-color: #fcfdfe; border-left: 4px solid #0d6efd; padding: 10px 14px;">
+              <span class="cell-title text-primary" style="font-size: 0.70rem; letter-spacing: 0.5px;">STATE ADMIN REMARKS</span>
+              
+              <div class="my-1" style="font-size: 0.95rem; font-weight: 600; color: #212529; min-height: 24px;">
+                ${r.stateRemarks ? `“${r.stateRemarks}”` : `<span class="text-muted fst-italic fw-normal small">No remarks left by State Admin.</span>`}
               </div>
-              <div class="text-muted small mt-1">
-                📅 Timestamp: ${r.stateActionTime || 'N/A'}<br>
-                💬 Remarks: <em>${r.stateRemarks || 'None recorded'}</em>
+
+              <div class="pt-1 mt-1 border-top d-flex justify-content-between align-items-center" style="font-size: 0.74rem; color: #6c757d;">
+                <span>👤 Reviewer: <strong class="text-secondary">${r.stateReviewer || 'State Admin'}</strong></span>
+                <span>🕒 ${r.stateActionTime || 'N/A'}</span>
               </div>
             </div>
           </div>
