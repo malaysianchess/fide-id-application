@@ -5,8 +5,8 @@
   <title>Admin Portal - Malaysian Chess Federation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- MCF Favicon -->
-<link rel="icon" type="image/png" href="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png">
-<link rel="apple-touch-icon" href="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png">
+  <link rel="icon" type="image/png" href="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png">
+  <link rel="apple-touch-icon" href="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <style>
@@ -81,8 +81,6 @@
       justify-content: center;
       transition: background-color 0.2s ease, border-color 0.2s ease;
     }
-    
-    /* Yellow highlight box for edited fields */
     .grid-cell.cell-modified {
       background-color: #fff8e1 !important;
       border: 1px dashed #ffc107 !important;
@@ -189,8 +187,6 @@
       color: #0d6efd;
       text-decoration: underline;
     }
-
-    /* Embedded Document Viewer Panel */
     .split-layout {
       display: flex;
       gap: 20px;
@@ -327,7 +323,6 @@
   </div>
 </footer>
 
-<!-- SweetAlert2 for clean modal editing -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -372,15 +367,9 @@ function callApi(params, onSuccess, onError) {
 }
 
 // Session Management
-function setToken(token) {
-  sessionStorage.setItem('portal_token', token);
-}
-function getToken() {
-  return sessionStorage.getItem('portal_token');
-}
-function clearToken() {
-  sessionStorage.removeItem('portal_token');
-}
+function setToken(token) { sessionStorage.setItem('portal_token', token); }
+function getToken() { return sessionStorage.getItem('portal_token'); }
+function clearToken() { sessionStorage.removeItem('portal_token'); }
 
 let currentData = { user: null, records: [], txMap: {}, distinctStates: [] };
 let activeTab = 'verify';
@@ -389,7 +378,6 @@ let currentStateFilter = 'ALL';
 let currentSearch = '';
 let masterCurrentPage = 1;
 
-// Rating Officer Pending State Filters
 let roPendingStateFilter = 'ALL';
 let roPendingStateSearch = '';
 
@@ -440,9 +428,16 @@ function isOlderThan7Days(timestampStr) {
   return ((new Date().getTime() - d.getTime()) / (1000 * 3600 * 24)) > 7;
 }
 
-// ==========================================
-// EMBEDDED DOCUMENT INSPECTION SYSTEM
-// ==========================================
+// Adjust subsequent row indices locally after a row is removed from Google Sheets
+function adjustLocalRowIndicesAfterDelete(deletedRowIndex) {
+  (currentData.records || []).forEach(r => {
+    if (!r.isArchived && r.rowIndex > deletedRowIndex) {
+      r.rowIndex -= 1;
+    }
+  });
+}
+
+// Embedded Document Inspection System
 function formatEmbedDriveUrl(rawUrl) {
   if (!rawUrl) return '';
   const url = String(rawUrl).trim();
@@ -664,14 +659,9 @@ function checkLiveTxDuplicate(rowIndex) {
   }
 }
 
-// ==========================================
-// INLINE EDITABLE CELL BUILDER (WITH AUDIT)
-// ==========================================
 function renderEditableCell(r, fieldKey, fieldLabel, canEdit) {
   const original = (r.originalData && r.originalData[fieldKey]) ? String(r.originalData[fieldKey]).trim() : '';
   const current = r[fieldKey] ? String(r[fieldKey]).trim() : '';
-  
-  // Flag as modified if original exists and differs from current
   const isModified = Boolean(original && current && original.toLowerCase() !== current.toLowerCase());
 
   return `
@@ -688,7 +678,6 @@ function renderEditableCell(r, fieldKey, fieldLabel, canEdit) {
   `;
 }
 
-// Inline Edit Modal Controller using SweetAlert2
 function openEditFieldModal(rowIndex, fieldKey, fieldLabel) {
   const record = (currentData.records || []).find(x => x.rowIndex === rowIndex);
   if (!record) return;
@@ -738,6 +727,7 @@ function executeSaveFieldEdit(rowIndex, fieldKey, newValue) {
   if (!record) return;
 
   const oldIc = record.icNo;
+  const oldName = record.fullName;
 
   callApi({
     action: 'updateApplicantField',
@@ -745,7 +735,8 @@ function executeSaveFieldEdit(rowIndex, fieldKey, newValue) {
     rowIndex: rowIndex,
     fieldKey: fieldKey,
     newValue: newValue,
-    ic: oldIc // <-- Passes previous IC to locate row before field update
+    ic: oldIc,
+    fullName: oldName
   }, res => {
     if (!res.success) {
       Swal.fire('Error', res.error || 'Failed to update field.', 'error');
@@ -776,8 +767,6 @@ function executeSaveFieldEdit(rowIndex, fieldKey, newValue) {
   
 function recalculateLiveIcDuplicates(rowIndex, oldIc, newIc) {
   const cleanNew = cleanKey(newIc);
-
-  // Re-index all records against the newly modified IC
   const matches = [];
   (currentData.records || []).forEach(r => {
     if (r.rowIndex !== rowIndex && cleanKey(r.icNo) === cleanNew) {
@@ -857,7 +846,7 @@ function renderStatePendingView() {
 
         <div class="bg-white p-3 border rounded">
           <label class="form-label fw-semibold">State Remarks</label>
-          <input type="text" id="rem-${r.rowIndex}" class="form-control mb-3" placeholder="Add remarks here (e.g. Spelling error per IC)">
+          <input type="text" id="rem-${r.rowIndex}" class="form-control mb-3" placeholder="Add remarks here (e.g. Verified IC & Age)">
           <div class="d-flex justify-content-end" id="btn-group-${r.rowIndex}">
             <button class="btn btn-outline-danger me-2" onclick="submitState(${r.rowIndex}, 'REJECTED')">Reject Application</button>
             <button class="btn btn-success px-4" onclick="submitState(${r.rowIndex}, 'APPROVED', ${hasDupe})">Approve Application</button>
@@ -960,7 +949,7 @@ function renderStateHistoryView() {
   document.getElementById('content-container').innerHTML = html;
 }
 
-// 3. RATING OFFICER: PENDING STATE APPROVAL (WITH PRE-CHECK PAYMENT & EDITABLE CELLS)
+// 3. RATING OFFICER: PENDING STATE APPROVAL
 function setRoPendingStateFilter(filterVal) {
   roPendingStateFilter = filterVal;
   renderRoPendingStateView();
@@ -1074,20 +1063,18 @@ function renderRoPendingStateView() {
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
           
           <div class="col-md-6">
-  <div class="grid-cell">
-    <span class="cell-title">State Remark</span>
-    <span class="cell-content text-muted">${r.stateRemarks || '-'}</span>
-    <div class="mt-1 pt-1 border-top" style="font-size: 0.78rem; color: #495057;">
-      👤 Approved by: <strong class="text-primary">${r.stateReviewer \vert{}\vert{} 'State Admin'}</strong>${r.stateActionTime ? `<span class="text-muted">(${r.stateActionTime})</span>` : ''}
-    </div>
-  </div>
-</div>
-<div class="col-md-6">
-  <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-    <div><span class="cell-title">Payment Proof</span><div class="cell-content">Receipt Attachment</div></div>
-    <div>${r.paymentUrl ? `<button type="button" class="btn btn-sm btn-success py-1" onclick="openDocViewer('${r.paymentUrl}', 'Payment Receipt: ${r.fullName.replace(/'/g, "\\'")}')">Inspect Receipt 🧾</button>` : '<span class="text-danger small">No Receipt</span>'}</div>
-  </div>
-</div>
+            <div class="grid-cell">
+              <span class="cell-title">State Review Status</span>
+              <span class="cell-content text-warning">Pending State Admin Review</span>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
+              <div><span class="cell-title">Payment Proof</span><div class="cell-content">Receipt Attachment</div></div>
+              <div>${r.paymentUrl ? `<button type="button" class="btn btn-sm btn-success py-1" onclick="openDocViewer('${r.paymentUrl}', 'Payment Receipt:${r.fullName.replace(/'/g, "\\'")}')">Inspect Receipt 🧾</button>` : '<span class="text-danger small">No Receipt</span>'}</div>
+            </div>
+          </div>
+        </div>
 
         <!-- 1. RO PRE-CHECK PAYMENT BLOCK -->
         <div class="bg-white p-3 border rounded mb-3" style="background-color: #f0f7ff !important;">
@@ -1156,7 +1143,7 @@ function renderRoPendingView() {
           <span class="badge badge-state">${r.state}</span>
           ${isPrechecked ? '<span class="badge badge-precheck ms-1">✔️ Pre-checked Tx Available</span>' : ''}
           ${hasDupe ? '<span class="badge badge-duplicate ms-1">⚠️ IC Duplicate</span>' : ''}
-          <div class="text-muted small mt-1">State OK: ${r.stateActionTime || 'N/A'} | IC: ${r.icNo}</div>
+          <div class="text-muted small mt-1">State OK: ${r.stateActionTime || 'N/A'} by <strong>${r.stateReviewer || 'State Admin'}</strong> | IC: ${r.icNo}</div>
         </div>
         <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
@@ -1187,10 +1174,28 @@ function renderRoPendingView() {
           <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Remark</span><span class="cell-content text-muted">${r.stateRemarks || '-'}</span></div></div>
+          
+          <!-- STATE APPROVER INFORMATION -->
+          <div class="col-md-6">
+            <div class="grid-cell" style="background-color: #f8fbff; border-left: 3px solid #0d6efd;">
+              <span class="cell-title">State Approval Details</span>
+              <div class="cell-content fs-6 text-dark">
+                👤 Approved by: <strong class="text-primary">${r.stateReviewer || 'State Admin'}</strong>
+              </div>
+              <div class="text-muted small mt-1">
+                📅 Timestamp: ${r.stateActionTime || 'N/A'}<br>
+                💬 Remarks: <em>${r.stateRemarks || 'None recorded'}</em>
+              </div>
+            </div>
+          </div>
+
+          <!-- PAYMENT PROOF -->
           <div class="col-md-6">
             <div class="grid-cell d-flex flex-row justify-content-between align-items-center">
-              <div><span class="cell-title">Payment Proof</span><div class="cell-content">Receipt Attachment</div></div>
+              <div>
+                <span class="cell-title">Payment Proof</span>
+                <div class="cell-content">Receipt Attachment</div>
+              </div>
               <div>${r.paymentUrl ? `<button type="button" class="btn btn-sm btn-success py-1" onclick="openDocViewer('${r.paymentUrl}', 'Payment Receipt:${r.fullName.replace(/'/g, "\\'")}')">Inspect Receipt 🧾</button>` : '<span class="text-danger small">No Receipt</span>'}</div>
             </div>
           </div>
@@ -1507,14 +1512,13 @@ function executeMasterSearch(page) {
 // ==========================================
 // ACTION DISPATCHERS
 // ==========================================
-
-// RO PRE-CHECK TRANSACTION HANDLER
 function submitPrecheckTx(rowIndex) {
   const token = getToken();
   const tx = document.getElementById(`tx-${rowIndex}`).value.trim();
   const remarks = document.getElementById(`rorem-${rowIndex}`).value.trim();
   const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
   const ic = record ? record.icNo : '';
+  const fullName = record ? record.fullName : '';
 
   if (!tx) {
     alert("Please enter a Payment Transaction Number to pre-check.");
@@ -1552,7 +1556,8 @@ function submitPrecheckTx(rowIndex) {
     rowIndex: rowIndex,
     transactionNo: tx,
     remarks: remarks,
-    ic: ic // <-- Passes IC
+    ic: ic,
+    fullName: fullName
   }, res => {
     btn.disabled = false;
     btn.innerHTML = `Saved! ✔️`;
@@ -1571,6 +1576,7 @@ function submitState(rowIndex, status, isDupe) {
   const remarks = document.getElementById(`rem-${rowIndex}`).value;
   const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
   const ic = record ? record.icNo : '';
+  const fullName = record ? record.fullName : '';
   
   if (status === 'APPROVED' && isDupe) {
     if (!confirm("⚠️ CAUTION: Duplicate IC detected!\nAre you sure you want to approve this application?")) return;
@@ -1598,15 +1604,23 @@ function submitState(rowIndex, status, isDupe) {
     rowIndex: rowIndex,
     status: status,
     remarks: remarks,
-    ic: ic // <-- Passes IC
+    ic: ic,
+    fullName: fullName
   }, res => {
-    if (!res.success) alert("Error updating record: " + res.error);
+    if (!res.success) {
+      alert("Error updating record: " + res.error);
+    } else if (status === 'REJECTED') {
+      adjustLocalRowIndicesAfterDelete(rowIndex);
+    }
   });
 }
 
 function reEvaluateState(rowIndex, status) {
   const token = getToken();
   const remarks = document.getElementById(`rem-${rowIndex}`).value;
+  const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const ic = record ? record.icNo : '';
+  const fullName = record ? record.fullName : '';
 
   if (!confirm(`Are you sure you want to change this application's status to ${status}?`)) return;
 
@@ -1624,9 +1638,15 @@ function reEvaluateState(rowIndex, status) {
     token: token,
     rowIndex: rowIndex,
     status: status,
-    remarks: remarks
+    remarks: remarks,
+    ic: ic,
+    fullName: fullName
   }, res => {
-    if (!res.success) alert("Error saving re-evaluation: " + res.error);
+    if (!res.success) {
+      alert("Error saving re-evaluation: " + res.error);
+    } else if (status === 'REJECTED') {
+      adjustLocalRowIndicesAfterDelete(rowIndex);
+    }
     renderStateHistoryView();
   }, err => {
     alert("Connection error: " + err.message);
@@ -1640,6 +1660,7 @@ function submitRo(rowIndex, status, isDupe) {
   const remarks = document.getElementById(`rorem-${rowIndex}`).value;
   const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
   const ic = record ? record.icNo : '';
+  const fullName = record ? record.fullName : '';
   
   if (status === 'APPROVED') {
     if (!tx.trim()) {
@@ -1687,9 +1708,14 @@ function submitRo(rowIndex, status, isDupe) {
     status: status,
     remarks: remarks,
     transactionNo: tx,
-    ic: ic // <-- Passes IC
+    ic: ic,
+    fullName: fullName
   }, res => {
-    if (!res.success) alert("Error updating review: " + res.error);
+    if (!res.success) {
+      alert("Error updating review: " + res.error);
+    } else if (status === 'REJECTED') {
+      adjustLocalRowIndicesAfterDelete(rowIndex);
+    }
   });
 }
 
@@ -1698,6 +1724,7 @@ function submitFide(rowIndex) {
   const id = document.getElementById(`fide-${rowIndex}`).value;
   const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
   const ic = record ? record.icNo : '';
+  const fullName = record ? record.fullName : '';
   
   if (!id.trim()) {
     alert("Please enter the assigned FIDE ID.");
@@ -1721,9 +1748,14 @@ function submitFide(rowIndex) {
     token: token,
     rowIndex: rowIndex,
     fideId: id,
-    ic: ic // <-- Passes IC so the correct row is targeted
+    ic: ic,
+    fullName: fullName
   }, res => {
-    if (!res.success) alert("Error saving FIDE ID: " + res.error);
+    if (!res.success) {
+      alert("Error saving FIDE ID: " + res.error);
+    } else {
+      adjustLocalRowIndicesAfterDelete(rowIndex);
+    }
   });
 }
 </script>
