@@ -4,231 +4,39 @@
   <meta charset="UTF-8">
   <title>Check FIDE ID Status - Malaysian Chess Federation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- MCF Favicon -->
   <link rel="icon" type="image/png" href="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png">
   <link rel="apple-touch-icon" href="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
-    body {
-      background-color: #f4f6f9;
-      min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-    }
-    .main-wrapper {
-      flex: 1 0 auto;
-    }
-    
-    /* Application Notice Header Banner */
-    .apply-banner-card {
-      max-width: 680px;
-      margin: 32px auto 0 auto;
-      border-radius: 12px;
-      border: 1px solid #b6d4fe;
-      background: linear-gradient(135deg, #e7f1ff, #f8fafd);
-      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);
-    }
-    .btn-apply-cta {
-      background-color: #0d6efd;
-      color: #ffffff;
-      font-weight: 600;
-      border-radius: 8px;
-      padding: 9px 18px;
-      transition: all 0.2s ease;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      border: none;
-      font-size: 0.92rem;
-    }
-    .btn-apply-cta:hover {
-      background-color: #0b5ed7;
-      color: #ffffff;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
-    }
-    .btn-faq-cta {
-      background-color: #ffffff;
-      color: #0d6efd;
-      border: 1px solid #b6d4fe;
-      font-weight: 600;
-      border-radius: 8px;
-      padding: 9px 16px;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.92rem;
-    }
-    .btn-faq-cta:hover {
-      background-color: #f0f6ff;
-      color: #0b5ed7;
-      border-color: #8bb9fe;
-      transform: translateY(-1px);
-    }
-
-    .search-card {
-      max-width: 680px;
-      margin: 16px auto 20px auto;
-      border-radius: 12px;
-      border: 1px solid #e3e6ea;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-      background: #ffffff;
-    }
-    .portal-logo {
-      max-height: 50px;
-      max-width: 110px;
-      object-fit: contain;
-    }
-    .logo-divider {
-      height: 32px;
-      width: 1px;
-      background-color: #dee2e6;
-      margin: 0 14px;
-    }
-
-    /* Stacked Search Button */
-    .btn-search-main {
-      border-radius: 8px;
-      font-weight: 600;
-      letter-spacing: 0.3px;
-      transition: all 0.2s ease;
-    }
-    .btn-search-main:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.22);
-    }
-
-    /* Segmented Multi-Stage Stepper */
-    .tracker-wrapper {
-      margin: 32px 0 24px 0;
-      padding: 0 10px;
-    }
-    .tracker-steps {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      position: relative;
-    }
-    .step-col {
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-      z-index: 2;
-      width: 90px;
-      flex-shrink: 0;
-    }
-    .step-line {
-      flex-grow: 1;
-      height: 4px;
-      background-color: #e9ecef;
-      margin-top: 18px;
-      position: relative;
-      z-index: 1;
-      transition: background-color 0.3s ease;
-    }
-    .step-line.completed {
-      background-color: #198754;
-    }
-    .step-line.rejected {
-      background-color: #dc3545;
-    }
-    .step-node {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 0.95rem;
-      background-color: #f8f9fa;
-      color: #adb5bd;
-      border: 3px solid #dee2e6;
-      transition: all 0.3s ease;
-    }
-    .step-col.completed .step-node {
-      background-color: #198754;
-      color: #ffffff;
-      border-color: #198754;
-      box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.15);
-    }
-    .step-col.active .step-node {
-      background-color: #0d6efd;
-      color: #ffffff;
-      border-color: #0d6efd;
-      box-shadow: 0 0 0 5px rgba(13, 110, 253, 0.22);
-      animation: pulse-ring 1.8s infinite;
-    }
-    .step-col.rejected .step-node {
-      background-color: #dc3545;
-      color: #ffffff;
-      border-color: #dc3545;
-      box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.2);
-    }
-    @keyframes pulse-ring {
-      0% { box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.4); }
-      50% { box-shadow: 0 0 0 7px rgba(13, 110, 253, 0.1); }
-      100% { box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.4); }
-    }
-    .step-title {
-      margin-top: 8px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: #6c757d;
-      line-height: 1.25;
-    }
-    .step-col.completed .step-title,
-    .step-col.active .step-title {
-      color: #212529;
-    }
-    .step-col.rejected .step-title {
-      color: #dc3545;
-    }
-    .step-subtext {
-      font-size: 0.7rem;
-      color: #8c98a4;
-      margin-top: 2px;
-    }
-
-    .fide-badge-card {
-      background: linear-gradient(135deg, #0d6efd, #0b5ed7);
-      color: #ffffff;
-      border-radius: 10px;
-      padding: 18px;
-      text-align: center;
-      box-shadow: 0 4px 14px rgba(13, 110, 253, 0.25);
-      margin-top: 20px;
-    }
-
-    .portal-footer {
-      flex-shrink: 0;
-      background-color: #ffffff;
-      border-top: 1px solid #e3e6ea;
-      padding: 24px 0 16px 0;
-      color: #6c757d;
-      font-size: 0.85rem;
-    }
-    .portal-footer a {
-      color: #495057;
-      text-decoration: none;
-      font-weight: 500;
-    }
-    .portal-footer a:hover {
-      color: #0d6efd;
-      text-decoration: underline;
-    }
+    body { background-color: #f4f6f9; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; }
+    .main-wrapper { flex: 1 0 auto; }
+    .apply-banner-card { max-width: 680px; margin: 32px auto 0 auto; border-radius: 12px; border: 1px solid #b6d4fe; background: linear-gradient(135deg, #e7f1ff, #f8fafd); box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08); }
+    .btn-apply-cta { background-color: #0d6efd; color: #ffffff; font-weight: 600; border-radius: 8px; padding: 9px 18px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border: none; font-size: 0.92rem; }
+    .btn-faq-cta { background-color: #ffffff; color: #0d6efd; border: 1px solid #b6d4fe; font-weight: 600; border-radius: 8px; padding: 9px 16px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.92rem; }
+    .search-card { max-width: 680px; margin: 16px auto 20px auto; border-radius: 12px; border: 1px solid #e3e6ea; box-shadow: 0 4px 12px rgba(0,0,0,0.06); background: #ffffff; }
+    .portal-logo { max-height: 50px; max-width: 110px; object-fit: contain; }
+    .logo-divider { height: 32px; width: 1px; background-color: #dee2e6; margin: 0 14px; }
+    .tracker-wrapper { margin: 32px 0 24px 0; padding: 0 10px; }
+    .tracker-steps { display: flex; align-items: flex-start; justify-content: space-between; position: relative; }
+    .step-col { text-align: center; display: flex; flex-direction: column; align-items: center; position: relative; z-index: 2; width: 90px; flex-shrink: 0; }
+    .step-line { flex-grow: 1; height: 4px; background-color: #e9ecef; margin-top: 18px; position: relative; z-index: 1; }
+    .step-line.completed { background-color: #198754; }
+    .step-line.rejected { background-color: #dc3545; }
+    .step-node { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; background-color: #f8f9fa; color: #adb5bd; border: 3px solid #dee2e6; }
+    .step-col.completed .step-node { background-color: #198754; color: #ffffff; border-color: #198754; }
+    .step-col.active .step-node { background-color: #0d6efd; color: #ffffff; border-color: #0d6efd; }
+    .step-col.rejected .step-node { background-color: #dc3545; color: #ffffff; border-color: #dc3545; }
+    .step-title { margin-top: 8px; font-size: 0.8rem; font-weight: 700; color: #6c757d; }
+    .step-col.completed .step-title, .step-col.active .step-title { color: #212529; }
+    .step-col.rejected .step-title { color: #dc3545; }
+    .step-subtext { font-size: 0.7rem; color: #8c98a4; margin-top: 2px; }
+    .fide-badge-card { background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #ffffff; border-radius: 10px; padding: 18px; text-align: center; box-shadow: 0 4px 14px rgba(13, 110, 253, 0.25); margin-top: 20px; }
+    .portal-footer { flex-shrink: 0; background-color: #ffffff; border-top: 1px solid #e3e6ea; padding: 24px 0 16px 0; color: #6c757d; font-size: 0.85rem; }
   </style>
 </head>
 <body>
 
 <div class="main-wrapper container">
-
-  <!-- 1. NEW APPLICANT CALL-TO-ACTION BANNER -->
   <div class="apply-banner-card p-3 p-md-4">
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
       <div>
@@ -236,133 +44,55 @@
           <span class="badge bg-primary px-2 py-1">New Registration</span>
           <h6 class="fw-bold mb-0 text-dark">Need a new FIDE ID?</h6>
         </div>
-        <p class="text-secondary small mb-0">
-          Submit your official player registration through the Malaysian Chess Federation Google Form.
-        </p>
+        <p class="text-secondary small mb-0">Submit your player registration through the Malaysian Chess Federation Google Form.</p>
       </div>
       <div class="d-flex flex-wrap gap-2">
-        <button type="button" class="btn-faq-cta" data-bs-toggle="modal" data-bs-target="#guideModal">
-          📖 Guide & FAQ
-        </button>
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfHMVbq1tlGSlvfXDOJsqn6qoPjLlHLuTPP0eZ0eMiu3Wa7zg/viewform" 
-           target="_blank" 
-           rel="noopener noreferrer" 
-           class="btn-apply-cta text-nowrap">
+        <button type="button" class="btn-faq-cta" data-bs-toggle="modal" data-bs-target="#guideModal">📖 Guide & FAQ</button>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfHMVbq1tlGSlvfXDOJsqn6qoPjLlHLuTPP0eZ0eMiu3Wa7zg/viewform" target="_blank" rel="noopener noreferrer" class="btn-apply-cta text-nowrap">
           <span>Apply for FIDE ID</span> ↗
         </a>
       </div>
     </div>
   </div>
 
-  <!-- 2. STATUS INQUIRY CARD -->
   <div class="search-card p-4">
     <div class="d-flex justify-content-center align-items-center mb-3">
-      <img src="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png" alt="MCF Logo" class="portal-logo" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/en/thumb/e/e9/Malaysian_Chess_Federation_logo.png/220px-Malaysian_Chess_Federation_logo.png';">
+      <img src="https://i.postimg.cc/jqWpy01d/MCF-LOGO.png" alt="MCF Logo" class="portal-logo">
       <div class="logo-divider"></div>
-      <img src="https://i.postimg.cc/sDW16LMV/FIDE-LOGO.png" alt="FIDE Logo" class="portal-logo" onerror="this.onerror=null; this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Fide_logo.png/320px-Fide_logo.png';">
+      <img src="https://i.postimg.cc/sDW16LMV/FIDE-LOGO.png" alt="FIDE Logo" class="portal-logo">
     </div>
-
     <h4 class="text-center fw-bold mb-1">Check FIDE ID Status</h4>
     <p class="text-center text-muted small mb-4">Malaysian Chess Federation (MCF) Public Inquiry</p>
 
-    <!-- Stacked Form Layout -->
     <form onsubmit="handleSearch(event)">
       <div class="mb-3">
-        <label for="ic-input" class="form-label small fw-semibold text-secondary">
-          IC / Identification No (with or without dashes)
-        </label>
-        <!-- Line 1: Full-width Input Field -->
-        <input type="text" 
-               id="ic-input" 
-               class="form-control form-control-lg fs-6" 
-               placeholder="e.g. 050312-14-0303 or 050312140303" 
-               inputmode="numeric" 
-               pattern="[0-9\-]*" 
-               required 
-               autocomplete="off">
+        <label for="ic-input" class="form-label small fw-semibold text-secondary">IC / Identification No (with or without dashes)</label>
+        <input type="text" id="ic-input" class="form-control form-control-lg fs-6" placeholder="e.g. 050312-14-0303 or 050312140303" inputmode="numeric" required autocomplete="off">
       </div>
-      <!-- Line 2: Full-width Dedicated Search Action -->
-      <button type="submit" id="btn-search" class="btn btn-primary btn-search-main w-100 py-2 fs-6">
-        Search Status 🔍
-      </button>
+      <button type="submit" id="btn-search" class="btn btn-primary w-100 py-2 fs-6 fw-semibold">Search Status 🔍</button>
     </form>
-
     <div id="search-alert" class="alert d-none mt-3 small"></div>
   </div>
 
-  <!-- 3. RESULTS CONTAINER -->
   <div id="results-container" class="mx-auto" style="max-width: 680px;"></div>
 </div>
 
-<!-- 4. GUIDE & FAQ MODAL -->
-<div class="modal fade" id="guideModal" tabindex="-1" aria-labelledby="guideModalLabel" aria-hidden="true">
+<div class="modal fade" id="guideModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
     <div class="modal-content border-0 shadow">
       <div class="modal-header bg-light">
-        <h5 class="modal-title fw-bold" id="guideModalLabel">📖 FIDE ID Registration Guide & FAQ</h5>
+        <h5 class="modal-title fw-bold">📖 FIDE ID Registration Guide & FAQ</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-4">
-        
-        <h6 class="fw-bold text-primary mb-2">❓ Frequently Asked Questions (FAQ)</h6>
         <div class="accordion accordion-flush small border rounded" id="faqAccordion">
           <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                How long does the verification process take?
-              </button>
-            </h2>
+            <h2 class="accordion-header"><button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">How long does verification take?</button></h2>
             <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-              <div class="accordion-body text-secondary">
-                Applications typically take <strong>3 to 7 working days</strong>, depending on how quickly your State Association verifies the submission and MCF registers to the FIDE Ratings server.
-              </div>
-            </div>
-          </div>
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                What documents do I need to prepare before applying?
-              </button>
-            </h2>
-            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-              <div class="accordion-body text-secondary">
-                1. Clear photo or PDF of player's <strong>MyKad / MyKid</strong>.<br>
-                2. <strong>Payment Receipt</strong> showing the bank reference number and transaction amount of <strong>RM50</strong>.
-              </div>
-            </div>
-          </div>
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                Why is my search showing "No record found"?
-              </button>
-            </h2>
-            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-              <div class="accordion-body text-secondary">
-                Double-check the IC number entered without typos. If you submitted within the last 15 minutes, please allow a short buffer for the submission to sync with the system.
-              </div>
-            </div>
-          </div>
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
-                What should I do if my application is rejected?
-              </button>
-            </h2>
-            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-              <div class="accordion-body text-secondary">
-                The reason for rejection will appear in a red notice banner on your search result. Kindly resubmit the form with the correct details.
-              </div>
+              <div class="accordion-body text-secondary">Typically 3 to 7 working days once submitted.</div>
             </div>
           </div>
         </div>
-
-      </div>
-      <div class="modal-footer bg-light py-2">
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfHMVbq1tlGSlvfXDOJsqn6qoPjLlHLuTPP0eZ0eMiu3Wa7zg/viewform" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm fw-semibold">
-          Open Application Form ↗
-        </a>
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -385,17 +115,13 @@
   </div>
 </footer>
 
-<!-- Bootstrap JS (Required for modal functionality) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// Cloudflare Worker Proxy Endpoint
 const SCRIPT_URL = "https://fide-id-app.mcf-ratings.workers.dev/";
 
 function handleSearch(e) {
   e.preventDefault();
-  
-  // Clean input to avoid mobile dash/space encoding bugs
   const rawInput = document.getElementById('ic-input').value || '';
   const ic = rawInput.replace(/[^a-zA-Z0-9]/g, '');
 
@@ -431,7 +157,7 @@ function handleSearch(e) {
     btn.innerHTML = "Search Status 🔍";
     alertBox.className = "alert alert-danger mt-3 small";
     alertBox.innerHTML = "Request timed out. Please check your internet connection.";
-  }, 15000);
+  }, 20000);
 
   window[callbackName] = function(data) {
     clearTimeout(timer);
@@ -441,10 +167,9 @@ function handleSearch(e) {
 
     if (!data || !data.success) {
       alertBox.className = "alert alert-warning mt-3 small";
-      alertBox.innerHTML = (data && (data.message || data.error)) || "No registration records found for this IC Number.";
+      alertBox.innerHTML = (data && (data.message || data.error)) || "No registration records found.";
       return;
     }
-
     renderResults(data.results);
   };
 
@@ -452,9 +177,7 @@ function handleSearch(e) {
   script.id = callbackName;
   script.type = 'text/javascript';
   script.async = true;
-  script.crossOrigin = "anonymous";
   script.src = `${SCRIPT_URL}?action=checkPublicStatus&ic=${encodeURIComponent(ic)}&callback=${callbackName}&_t=${Date.now()}`;
-
   script.onerror = function() {
     if (completed) return;
     clearTimeout(timer);
@@ -462,7 +185,7 @@ function handleSearch(e) {
     btn.disabled = false;
     btn.innerHTML = "Search Status 🔍";
     alertBox.className = "alert alert-danger mt-3 small";
-    alertBox.innerHTML = "Unable to connect to MCF database. Please try again later.";
+    alertBox.innerHTML = "Unable to connect to MCF database.";
   };
 
   (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(script);
@@ -475,55 +198,27 @@ function renderResults(records) {
   records.forEach((r) => {
     const isStateApproved = (r.stateStatus === 'APPROVED');
     const isStateRejected = (r.stateStatus === 'REJECTED');
-    
     const isRoApproved = (r.roStatus === 'APPROVED');
     const isRoRejected = (r.roStatus === 'REJECTED');
-    
     const isFideAssigned = (r.fideIdStatus === 'ASSIGNED' && Boolean(r.assignedFideId));
     const isAnyRejected = isStateRejected || isRoRejected;
 
-    let s1 = 'completed';
-    let s2 = 'upcoming';
-    let s3 = 'upcoming';
-    let s4 = 'upcoming';
+    let s1 = 'completed', s2 = 'upcoming', s3 = 'upcoming', s4 = 'upcoming';
+    let line1 = '', line2 = '', line3 = '';
 
-    let line1 = '';
-    let line2 = '';
-    let line3 = '';
+    if (isStateRejected) { s2 = 'rejected'; line1 = 'rejected'; }
+    else if (isStateApproved) { s2 = 'completed'; line1 = 'completed'; }
+    else { s2 = 'active'; line1 = 'completed'; }
 
-    // Stage 1 -> Stage 2 (State Review)
-    if (isStateRejected) {
-      s2 = 'rejected';
-      line1 = 'rejected';
-    } else if (isStateApproved) {
-      s2 = 'completed';
-      line1 = 'completed';
-    } else {
-      s2 = 'active';
-      line1 = 'completed';
-    }
-
-    // Stage 2 -> Stage 3 (Rating Officer Review)
     if (isStateApproved) {
-      if (isRoRejected) {
-        s3 = 'rejected';
-        line2 = 'rejected';
-      } else if (isRoApproved) {
-        s3 = 'completed';
-        line2 = 'completed';
-      } else {
-        s3 = 'active';
-      }
+      if (isRoRejected) { s3 = 'rejected'; line2 = 'rejected'; }
+      else if (isRoApproved) { s3 = 'completed'; line2 = 'completed'; }
+      else { s3 = 'active'; }
     }
 
-    // Stage 3 -> Stage 4 (FIDE ID Assignment)
     if (isRoApproved) {
-      if (isFideAssigned) {
-        s4 = 'completed';
-        line3 = 'completed';
-      } else {
-        s4 = 'active';
-      }
+      if (isFideAssigned) { s4 = 'completed'; line3 = 'completed'; }
+      else { s4 = 'active'; }
     }
 
     html += `
@@ -542,50 +237,15 @@ function renderResults(records) {
         </span>
       </div>
 
-      <!-- Segmented 4-Stage Visual Stepper -->
       <div class="tracker-wrapper">
         <div class="tracker-steps">
-          <div class="step-col ${s1}">
-            <div class="step-node">&#10003;</div>
-            <div class="step-title">Submitted</div>
-            <div class="step-subtext">Received</div>
-          </div>
-
+          <div class="step-col ${s1}"><div class="step-node">&#10003;</div><div class="step-title">Submitted</div></div>
           <div class="step-line ${line1}"></div>
-
-          <div class="step-col ${s2}">
-            <div class="step-node">
-              ${s2 === 'completed' ? '&#10003;' : (s2 === 'rejected' ? '&times;' : '2')}
-            </div>
-            <div class="step-title">State Review</div>
-            <div class="step-subtext">
-              ${s2 === 'completed' ? 'Endorsed' : (s2 === 'rejected' ? 'Rejected' : (s2 === 'active' ? 'Under Review' : 'Pending'))}
-            </div>
-          </div>
-
+          <div class="step-col ${s2}"><div class="step-node">${s2 === 'completed' ? '&#10003;' : (s2 === 'rejected' ? '&times;' : '2')}</div><div class="step-title">State Review</div></div>
           <div class="step-line ${line2}"></div>
-
-          <div class="step-col ${s3}">
-            <div class="step-node">
-              ${s3 === 'completed' ? '&#10003;' : (s3 === 'rejected' ? '&times;' : '3')}
-            </div>
-            <div class="step-title">Rating Officer Review</div>
-            <div class="step-subtext">
-              ${s3 === 'completed' ? 'Verified' : (s3 === 'rejected' ? 'Rejected' : (s3 === 'active' ? 'Payment Check' : 'Upcoming'))}
-            </div>
-          </div>
-
+          <div class="step-col ${s3}"><div class="step-node">${s3 === 'completed' ? '&#10003;' : (s3 === 'rejected' ? '&times;' : '3')}</div><div class="step-title">RO Review</div></div>
           <div class="step-line ${line3}"></div>
-
-          <div class="step-col ${s4}">
-            <div class="step-node">
-              ${s4 === 'completed' ? '&#10003;' : '4'}
-            </div>
-            <div class="step-title">FIDE ID Assigned</div>
-            <div class="step-subtext">
-              ${s4 === 'completed' ? 'Generated' : (s4 === 'active' ? 'Pending Upload' : 'Final Step')}
-            </div>
-          </div>
+          <div class="step-col ${s4}"><div class="step-node">${s4 === 'completed' ? '&#10003;' : '4'}</div><div class="step-title">FIDE ID</div></div>
         </div>
       </div>
 
@@ -593,22 +253,13 @@ function renderResults(records) {
         <div class="fide-badge-card">
           <small class="text-uppercase tracking-wider opacity-75 d-block">Official Assigned FIDE ID</small>
           <div class="display-6 fw-bold my-1 tracking-wide">${r.assignedFideId}</div>
-          <a href="https://ratings.fide.com/profile/${r.assignedFideId}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light fw-bold text-primary mt-2 px-3">
-            Open Official FIDE Ratings Profile ↗
-          </a>
+          <a href="https://ratings.fide.com/profile/${r.assignedFideId}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light fw-bold text-primary mt-2 px-3">Open FIDE Profile ↗</a>
         </div>
       ` : ''}
 
       ${isAnyRejected ? `
         <div class="alert alert-danger p-3 mt-2 mb-0 small">
-          <strong>⛔ Application Status Notice:</strong><br>
-          ${r.publicNote || 'Your application was rejected during verification. Please contact your State Chess Association or the MCF Secretariat for assistance.'}
-        </div>
-      ` : ''}
-
-      ${!isFideAssigned && !isAnyRejected ? `
-        <div class="alert alert-light border p-3 mt-2 mb-0 small text-center text-secondary">
-          <strong>Current Status:</strong> Your application is actively progressing through the verification pipeline. Once approved by the Rating Officer, your FIDE ID will be displayed here.
+          <strong>⛔ Application Status Notice:</strong><br>${r.publicNote || 'Application rejected.'}
         </div>
       ` : ''}
     </div>`;
