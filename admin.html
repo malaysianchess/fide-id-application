@@ -723,7 +723,8 @@ function openEditFieldModal(rowIndex, fieldKey, fieldLabel) {
     inputOptions = { 'Male': 'Male', 'Female': 'Female' };
   } else if (isDob) {
     inputType = 'date';
-    currentValue = formatDateToYMD(currentValue, false);
+    const formatted = formatDateToYMD(currentValue, false);
+    currentValue = (formatted === '-' || formatted === 'N/A') ? '' : formatted;
   }
 
   Swal.fire({
@@ -927,7 +928,9 @@ function renderStateHistoryView() {
 
   list.forEach(r => {
     const isRoApproved = (r.roStatus === 'APPROVED');
-    const canEdit = !isRoApproved;
+    const isArchived = Boolean(r.isArchived);
+    const isLocked = isRoApproved || isArchived;
+    const canEdit = !isLocked;
 
     html += `
     <div class="record-card" id="card-${r.rowIndex}">
@@ -961,12 +964,12 @@ function renderStateHistoryView() {
         
         <div class="bg-white p-3 border rounded">
           <h6 class="fw-bold text-secondary mb-1">Update / Re-evaluate Decision</h6>
-          ${isRoApproved ? `
+          ${isLocked ? `
             <div class="alert alert-warning py-2 px-3 small mb-0 mt-2">
-              🔒 <strong>Action Locked:</strong> This application has already been verified and <strong>Approved by the Rating Officer</strong>. State Admin cannot alter it.
+              🔒 <strong>Action Locked:</strong> This application has already been ${isArchived ? '<strong>Archived</strong>' : 'verified and <strong>Approved by the Rating Officer</strong>'}. State Admin cannot alter it.
             </div>
           ` : `
-            <p class="small text-muted mb-2">Only applications not yet approved by Rating Officer may be changed:</p>
+            <p class="small text-muted mb-2">Only active applications not yet approved by Rating Officer may be changed:</p>
             <input type="text" id="rem-${r.rowIndex}" class="form-control mb-3" placeholder="Update remarks" value="${r.stateRemarks || ''}">
             <div class="d-flex justify-content-end" id="btn-group-${r.rowIndex}">
               <button class="btn btn-outline-danger me-2" onclick="reEvaluateState(${r.rowIndex}, 'REJECTED')">Set to Rejected</button>
@@ -1655,7 +1658,7 @@ function submitState(rowIndex, status, isDupe) {
     if (idx !== -1) {
       currentData.records[idx].stateStatus = status;
       currentData.records[idx].stateRemarks = remarks;
-      currentData.records[idx].stateActionTime = new Date().toLocaleString();
+      currentData.records[idx].stateActionTime = formatDateToYMD(new Date(), true);
       currentData.records[idx].stateReviewer = currentData.user.name;
     }
   });
@@ -1758,7 +1761,7 @@ function submitRo(rowIndex, status, isDupe) {
       currentData.records[idx].roStatus = status;
       currentData.records[idx].roRemarks = remarks;
       currentData.records[idx].transactionNo = tx;
-      currentData.records[idx].roActionTime = new Date().toLocaleString();
+      currentData.records[idx].roActionTime = formatDateToYMD(new Date(), true);
       currentData.records[idx].roReviewer = currentData.user.name;
       if (status === 'APPROVED') currentData.records[idx].fideIdStatus = 'PENDING';
     }
@@ -1803,7 +1806,7 @@ function submitFide(rowIndex) {
     if (idx !== -1) {
       currentData.records[idx].fideIdStatus = 'ASSIGNED';
       currentData.records[idx].assignedFideId = id;
-      currentData.records[idx].fideAssignedTime = new Date().toLocaleString();
+      currentData.records[idx].fideAssignedTime = formatDateToYMD(new Date(), true);
     }
   });
 
