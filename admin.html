@@ -406,19 +406,44 @@ function parseDateRobust(dateStr) {
     return new Date(
       parseInt(dmyMatch[3], 10),
       parseInt(dmyMatch[2], 10) - 1,
-      parseInt(dmyMatch[1], 10)
+      parseInt(dmyMatch[1], 10),
+      dmyMatch[4] ? parseInt(dmyMatch[4], 10) : 0,
+      dmyMatch[5] ? parseInt(dmyMatch[5], 10) : 0,
+      dmyMatch[6] ? parseInt(dmyMatch[6], 10) : 0
     );
   }
-  const ymdMatch = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  const ymdMatch = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
   if (ymdMatch) {
     return new Date(
       parseInt(ymdMatch[1], 10),
       parseInt(ymdMatch[2], 10) - 1,
-      parseInt(ymdMatch[3], 10)
+      parseInt(ymdMatch[3], 10),
+      ymdMatch[4] ? parseInt(ymdMatch[4], 10) : 0,
+      ymdMatch[5] ? parseInt(ymdMatch[5], 10) : 0,
+      ymdMatch[6] ? parseInt(ymdMatch[6], 10) : 0
     );
   }
   const fallback = new Date(s);
   return isNaN(fallback.getTime()) ? null : fallback;
+}
+
+// Format any date/time string to YYYY-MM-DD or YYYY-MM-DD HH:mm:ss
+function formatDateToYMD(dateStr, includeTime = false) {
+  if (!dateStr) return '-';
+  const d = parseDateRobust(dateStr);
+  if (!d) return String(dateStr);
+
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+
+  if (includeTime) {
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+  }
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function isOlderThan7Days(timestampStr) {
@@ -659,7 +684,13 @@ function checkLiveTxDuplicate(rowIndex) {
 
 function renderEditableCell(r, fieldKey, fieldLabel, canEdit) {
   const original = (r.originalData && r.originalData[fieldKey]) ? String(r.originalData[fieldKey]).trim() : '';
-  const current = r[fieldKey] ? String(r[fieldKey]).trim() : '';
+  let current = r[fieldKey] ? String(r[fieldKey]).trim() : '';
+  
+  // Format DOB to YYYY-MM-DD for display
+  if (fieldKey === 'dob' && current) {
+    current = formatDateToYMD(current, false);
+  }
+
   const isModified = Boolean(original && current && original.toLowerCase() !== current.toLowerCase());
 
   return `
@@ -667,7 +698,7 @@ function renderEditableCell(r, fieldKey, fieldLabel, canEdit) {
       <span class="cell-title">
         <span>
           ${fieldLabel}
-          ${isModified ? `<span class="badge-edited-indicator" title="Original submitted: ${original.replace(/"/g, '&quot;')}">✏️ Edited (Orig: ${original})</span>` : ''}
+          ${isModified ? `<span class="badge-edited-indicator" title="Original submitted: ${original.replace(/"/g, '&quot;')}">✏️ Edited (Orig: ${fieldKey === 'dob' ? formatDateToYMD(original, false) : original})</span>` : ''}
         </span>
         ${canEdit ? `<button type="button" class="btn-edit-field" title="Edit ${fieldLabel}" onclick="openEditFieldModal(${r.rowIndex}, '${fieldKey}', '${fieldLabel}')">✏️ Edit</button>` : ''}
       </span>
@@ -680,7 +711,7 @@ function openEditFieldModal(rowIndex, fieldKey, fieldLabel) {
   const record = (currentData.records || []).find(x => x.rowIndex === rowIndex);
   if (!record) return;
 
-  const currentValue = record[fieldKey] || '';
+  let currentValue = record[fieldKey] || '';
   const isGender = (fieldKey === 'sex');
   const isDob = (fieldKey === 'dob');
 
@@ -692,6 +723,7 @@ function openEditFieldModal(rowIndex, fieldKey, fieldLabel) {
     inputOptions = { 'Male': 'Male', 'Female': 'Female' };
   } else if (isDob) {
     inputType = 'date';
+    currentValue = formatDateToYMD(currentValue, false);
   }
 
   Swal.fire({
@@ -809,7 +841,7 @@ function renderStatePendingView() {
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="badge badge-state">${r.state}</span>
           ${hasDupe ? '<span class="badge badge-duplicate ms-1">⚠️ Possible IC Duplicate</span>' : ''}
-          <div class="text-muted small mt-1">Submitted: ${r.timestamp || 'N/A'} | IC: ${r.icNo}</div>
+          <div class="text-muted small mt-1">Submitted: ${formatDateToYMD(r.timestamp, true)} | IC: ${r.icNo}</div>
         </div>
         <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
@@ -904,7 +936,7 @@ function renderStateHistoryView() {
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="status-badge ${r.stateStatus === 'APPROVED' ? 'status-approved' : (r.stateStatus === 'REJECTED' ? 'status-rejected' : 'status-pending')} me-2">${r.stateStatus}</span>
           ${isRoApproved ? '<span class="badge bg-secondary me-1">RO Approved</span>' : ''}
-          <div class="text-muted small mt-1">Submitted: ${r.timestamp || 'N/A'} | IC: ${r.icNo}</div>
+          <div class="text-muted small mt-1">Submitted: ${formatDateToYMD(r.timestamp, true)} | IC: ${r.icNo}</div>
         </div>
         <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
@@ -915,13 +947,13 @@ function renderStateHistoryView() {
           <div class="col-md-6">${renderEditableCell(r, 'icNo', 'IC No', canEdit)}</div>
           <div class="col-md-3">${renderEditableCell(r, 'firstName', 'First Name', canEdit)}</div>
           <div class="col-md-3">${renderEditableCell(r, 'lastName', 'Last Name', canEdit)}</div>
-          <div class="col-md-3">${renderEditableCell(r, 'dob', 'DOB', canEdit)}</div>
+          <div class="col-md-3">${renderEditableCell(r, 'dob', 'DOB (YYYY-MM-DD)', canEdit)}</div>
           <div class="col-md-3">${renderEditableCell(r, 'sex', 'Gender', canEdit)}</div>
           <div class="col-md-4"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile}</span></div></div>
           <div class="col-md-4"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email}</span></div></div>
           <div class="col-md-4"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Reviewer</span><span class="cell-content">${r.stateReviewer || 'N/A'}</span></div></div>
-          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Action Timestamp</span><span class="cell-content">${r.stateActionTime || 'N/A'}</span></div></div>
+          <div class="col-md-6"><div class="grid-cell"><span class="cell-title">State Action Timestamp</span><span class="cell-content">${formatDateToYMD(r.stateActionTime, true)}</span></div></div>
           <div class="col-12"><div class="grid-cell"><span class="cell-title">State Remarks</span><span class="cell-content text-muted">${r.stateRemarks || 'None recorded'}</span></div></div>
         </div>
         
@@ -1028,7 +1060,7 @@ function renderRoPendingStateView() {
           ${hasPrecheckTx ? '<span class="badge badge-precheck me-1">✔️ Pre-checked Tx</span>' : '<span class="badge bg-secondary opacity-75 me-1">No Tx Pre-check</span>'}
           ${isAging ? '<span class="badge badge-aging me-1">⏰ Applied > 7 Days Ago</span>' : ''}
           ${hasDupe ? '<span class="badge badge-duplicate me-1">⚠️ Possible IC Duplicate</span>' : ''}
-          <div class="text-muted small mt-1">Submitted: <strong>${r.timestamp || 'N/A'}</strong> | IC: ${r.icNo}</div>
+          <div class="text-muted small mt-1">Submitted: <strong>${formatDateToYMD(r.timestamp, true)}</strong> | IC: ${r.icNo}</div>
         </div>
         <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
@@ -1143,7 +1175,7 @@ function renderRoPendingView() {
           <span class="badge badge-state">${r.state}</span>
           ${isPrechecked ? '<span class="badge badge-precheck ms-1">✔️ Pre-checked Tx Available</span>' : ''}
           ${hasDupe ? '<span class="badge badge-duplicate ms-1">⚠️ IC Duplicate</span>' : ''}
-          <div class="text-muted small mt-1">State OK: ${r.stateActionTime || 'N/A'} | IC: ${r.icNo}</div>
+          <div class="text-muted small mt-1">State OK: ${formatDateToYMD(r.stateActionTime, true)} | IC: ${r.icNo}</div>
         </div>
         <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
@@ -1186,7 +1218,7 @@ function renderRoPendingView() {
 
               <div class="pt-1 mt-1 border-top d-flex justify-content-between align-items-center" style="font-size: 0.74rem; color: #6c757d;">
                 <span>👤 Reviewer: <strong class="text-secondary">${r.stateReviewer || 'State Admin'}</strong></span>
-                <span>🕒 ${r.stateActionTime || 'N/A'}</span>
+                <span>🕒 ${formatDateToYMD(r.stateActionTime, true)}</span>
               </div>
             </div>
           </div>
@@ -1258,7 +1290,7 @@ function renderRoAssignmentView() {
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="badge badge-state">${r.state}</span>
-          <div class="text-muted small mt-1">Verified: ${r.roActionTime || 'N/A'} | IC: ${r.icNo}</div>
+          <div class="text-muted small mt-1">Verified: ${formatDateToYMD(r.roActionTime, true)} | IC: ${r.icNo}</div>
         </div>
         <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
       </div>
@@ -1462,7 +1494,7 @@ function executeMasterSearch(page) {
             <span class="badge badge-state me-2">${r.state}</span>
             <span class="status-badge ${r.roStatus === 'APPROVED' ? 'status-approved' : (r.roStatus === 'REJECTED' ? 'status-rejected' : 'status-pending')} me-1">RO: ${r.roStatus}</span>
             ${r.assignedFideId ? `<span class="badge bg-dark">FIDE ID: ${r.assignedFideId}</span>` : ''}
-            <div class="text-muted small mt-1">Submitted: ${r.timestamp} | IC: ${r.icNo}</div>
+            <div class="text-muted small mt-1">Submitted: ${formatDateToYMD(r.timestamp, true)} | IC: ${r.icNo}</div>
           </div>
           <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
         </div>
@@ -1472,7 +1504,7 @@ function executeMasterSearch(page) {
             <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Full Name per IC</span><span class="cell-content">${r.fullName}</span></div></div>
             <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
             <div class="col-md-4"><div class="grid-cell"><span class="cell-title">IC / Identification No</span><span class="cell-content">${r.icNo}</span></div></div>
-            <div class="col-md-4"><div class="grid-cell"><span class="cell-title">DOB / Sex</span><span class="cell-content">${r.dob} (${r.sex})</span></div></div>
+            <div class="col-md-4"><div class="grid-cell"><span class="cell-title">DOB / Sex</span><span class="cell-content">${formatDateToYMD(r.dob, false)} (${r.sex})</span></div></div>
             <div class="col-md-4"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state}</span></div></div>
             <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email}</span></div></div>
             <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Contact Number</span><span class="cell-content">${r.mobile}</span></div></div>
@@ -1494,7 +1526,7 @@ function executeMasterSearch(page) {
                   <span class="fw-bold text-primary d-block mb-1">State Administration</span>
                   <small class="text-muted d-block">Status: <strong>${r.stateStatus}</strong></small>
                   <small class="text-muted d-block">Reviewer Name: <strong>${r.stateReviewer || 'N/A'}</strong></small>
-                  <small class="text-muted d-block">Action Timestamp: <strong>${r.stateActionTime || 'N/A'}</strong></small>
+                  <small class="text-muted d-block">Action Timestamp: <strong>${formatDateToYMD(r.stateActionTime, true)}</strong></small>
                   <small class="text-muted d-block mt-1">Remarks: <span class="fst-italic text-dark">${r.stateRemarks || 'None recorded'}</span></small>
                 </div>
               </div>
@@ -1505,7 +1537,7 @@ function executeMasterSearch(page) {
                   <small class="text-muted d-block">Status: <strong>${r.roStatus}</strong></small>
                   <small class="text-muted d-block">Reviewer Name: <strong>${r.roReviewer || 'N/A'}</strong></small>
                   <small class="text-muted d-block">Transaction No: <code>${r.transactionNo || 'N/A'}</code></small>
-                  <small class="text-muted d-block">Action Timestamp: <strong>${r.roActionTime || 'N/A'}</strong></small>
+                  <small class="text-muted d-block">Action Timestamp: <strong>${formatDateToYMD(r.roActionTime, true)}</strong></small>
                   <small class="text-muted d-block mt-1">Remarks: <span class="fst-italic text-dark">${r.roRemarks || 'None recorded'}</span></small>
                 </div>
               </div>
@@ -1514,7 +1546,7 @@ function executeMasterSearch(page) {
                 <div class="p-2 border rounded bg-light">
                   <span class="fw-bold text-dark d-block mb-1">FIDE ID Assignment</span>
                   <small class="text-muted d-block">Assigned FIDE ID: <strong class="fs-6 text-primary">${r.assignedFideId || 'Not assigned yet'}</strong></small>
-                  <small class="text-muted d-block">Assignment Timestamp: <strong>${r.fideAssignedTime || 'N/A'}</strong></small>
+                  <small class="text-muted d-block">Assignment Timestamp: <strong>${formatDateToYMD(r.fideAssignedTime, true)}</strong></small>
                 </div>
               </div>
             </div>
