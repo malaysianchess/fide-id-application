@@ -397,6 +397,10 @@ function cleanKey(val) {
   return s.replace(/[\s\-_]/g, '').toUpperCase();
 }
 
+function getCardKey(r) {
+  return r.uid || `${r.isArchived ? 'ARCH' : 'ACT'}_${r.rowIndex}`;
+}
+
 function parseDateRobust(dateStr) {
   if (!dateStr) return null;
   const s = String(dateStr).trim();
@@ -632,9 +636,10 @@ function routeView() {
   }
 }
 
-function toggleDetails(rowIndex) {
-  const panel = document.getElementById(`details-${rowIndex}`);
-  const btn = document.getElementById(`toggle-btn-${rowIndex}`);
+function toggleDetails(cardKey) {
+  const panel = document.getElementById(`details-${cardKey}`);
+  const btn = document.getElementById(`toggle-btn-${cardKey}`);
+  if (!panel || !btn) return;
   if (panel.classList.contains('d-none')) {
     panel.classList.remove('d-none');
     btn.innerText = "Hide Details ▲";
@@ -645,7 +650,7 @@ function toggleDetails(rowIndex) {
 }
 
 function removeCardLocally(rowIndex, checkEmptyCallback) {
-  const card = document.getElementById(`card-${rowIndex}`);
+  const card = document.getElementById(`card-${rowIndex}`) || document.getElementById(`card-ACT_${rowIndex}`);
   if (card) {
     card.style.opacity = '0';
     card.style.transform = 'translateY(-10px)';
@@ -674,7 +679,7 @@ function checkLiveTxDuplicate(rowIndex) {
   const txMap = currentData.txMap || {};
   const duplicate = txMap[clean];
 
-  if (duplicate && duplicate.rowIndex !== rowIndex) {
+  if (duplicate && (duplicate.rowIndex !== rowIndex || duplicate.source === 'Archive')) {
     alertBox.innerHTML = `⚠️ <strong>Duplicate Transaction No!</strong> Already used by <strong>${duplicate.fullName}</strong> (${duplicate.state}) [${duplicate.source || 'Active Sheet'}].`;
     alertBox.classList.remove('d-none');
   } else {
@@ -683,6 +688,7 @@ function checkLiveTxDuplicate(rowIndex) {
 }
 
 function renderEditableCell(r, fieldKey, fieldLabel, canEdit) {
+  const cardKey = getCardKey(r);
   const original = (r.originalData && r.originalData[fieldKey]) ? String(r.originalData[fieldKey]).trim() : '';
   let current = r[fieldKey] ? String(r[fieldKey]).trim() : '';
   
@@ -694,7 +700,7 @@ function renderEditableCell(r, fieldKey, fieldLabel, canEdit) {
   const isModified = Boolean(original && current && original.toLowerCase() !== current.toLowerCase());
 
   return `
-    <div class="grid-cell ${isModified ? 'cell-modified' : ''}" id="cell-container-${fieldKey}-${r.rowIndex}">
+    <div class="grid-cell ${isModified ? 'cell-modified' : ''}" id="cell-container-${fieldKey}-${cardKey}">
       <span class="cell-title">
         <span>
           ${fieldLabel}
@@ -702,13 +708,13 @@ function renderEditableCell(r, fieldKey, fieldLabel, canEdit) {
         </span>
         ${canEdit ? `<button type="button" class="btn-edit-field" title="Edit ${fieldLabel}" onclick="openEditFieldModal(${r.rowIndex}, '${fieldKey}', '${fieldLabel}')">✏️ Edit</button>` : ''}
       </span>
-      <span class="cell-content" id="cell-val-${fieldKey}-${r.rowIndex}">${current || '-'}</span>
+      <span class="cell-content" id="cell-val-${fieldKey}-${cardKey}">${current || '-'}</span>
     </div>
   `;
 }
 
 function openEditFieldModal(rowIndex, fieldKey, fieldLabel) {
-  const record = (currentData.records || []).find(x => x.rowIndex === rowIndex);
+  const record = (currentData.records || []).find(x => !x.isArchived && x.rowIndex === rowIndex);
   if (!record) return;
 
   let currentValue = record[fieldKey] || '';
@@ -754,7 +760,7 @@ function openEditFieldModal(rowIndex, fieldKey, fieldLabel) {
 
 function executeSaveFieldEdit(rowIndex, fieldKey, newValue) {
   const token = getToken();
-  const record = (currentData.records || []).find(x => x.rowIndex === rowIndex);
+  const record = (currentData.records || []).find(x => !x.isArchived && x.rowIndex === rowIndex);
   if (!record) return;
 
   const oldIc = record.icNo;
@@ -802,7 +808,7 @@ function recalculateLiveIcDuplicates(rowIndex, oldIc, newIc) {
   const cleanNew = cleanKey(newIc);
   const matches = [];
   (currentData.records || []).forEach(r => {
-    if (r.rowIndex !== rowIndex && cleanKey(r.icNo) === cleanNew) {
+    if ((r.isArchived || r.rowIndex !== rowIndex) && cleanKey(r.icNo) === cleanNew) {
       matches.push({
         rowIndex: r.rowIndex,
         fullName: r.fullName,
@@ -814,7 +820,7 @@ function recalculateLiveIcDuplicates(rowIndex, oldIc, newIc) {
     }
   });
 
-  const target = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const target = (currentData.records || []).find(r => !r.isArchived && r.rowIndex === rowIndex);
   if (target) {
     target.icDuplicates = matches;
   }
@@ -822,7 +828,7 @@ function recalculateLiveIcDuplicates(rowIndex, oldIc, newIc) {
 
 // 1. STATE ADMIN: PENDING QUEUE
 function renderStatePendingView() {
-  const pending = (currentData.records || []).filter(r => r.stateStatus === 'PENDING');
+  const pending = (currentData.records || []).filter(r => !r.isArchived && r.stateStatus === 'PENDING');
   if (!pending.length) {
     document.getElementById('content-container').innerHTML = 
       `<div class="alert alert-success">No pending player registrations for ${currentData.user.state}.</div>`;
@@ -834,20 +840,21 @@ function renderStatePendingView() {
   pending.forEach(r => {
     const icDupes = findIcDuplicates(r);
     const hasDupe = icDupes.length > 0;
+    const cardKey = getCardKey(r);
 
     html += `
     <div class="record-card ${hasDupe ? 'border-danger' : ''}" id="card-${r.rowIndex}">
-      <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+      <div class="record-summary" onclick="toggleDetails('${cardKey}')">
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="badge badge-state">${r.state}</span>
           ${hasDupe ? '<span class="badge badge-duplicate ms-1">⚠️ Possible IC Duplicate</span>' : ''}
           <div class="text-muted small mt-1">Submitted: ${formatDateToYMD(r.timestamp, true)} | IC: ${r.icNo}</div>
         </div>
-        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${cardKey}" type="button">View Details ▼</button>
       </div>
 
-      <div class="record-details d-none" id="details-${r.rowIndex}">
+      <div class="record-details d-none" id="details-${cardKey}">
         ${hasDupe ? `
           <div class="alert alert-danger p-2 small mb-3">
             <strong>⚠️ DUPLICATE IC FOUND:</strong>
@@ -931,20 +938,22 @@ function renderStateHistoryView() {
     const isArchived = Boolean(r.isArchived);
     const isLocked = isRoApproved || isArchived;
     const canEdit = !isLocked;
+    const cardKey = getCardKey(r);
 
     html += `
-    <div class="record-card" id="card-${r.rowIndex}">
-      <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+    <div class="record-card" id="card-${cardKey}">
+      <div class="record-summary" onclick="toggleDetails('${cardKey}')">
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="status-badge ${r.stateStatus === 'APPROVED' ? 'status-approved' : (r.stateStatus === 'REJECTED' ? 'status-rejected' : 'status-pending')} me-2">${r.stateStatus}</span>
           ${isRoApproved ? '<span class="badge bg-secondary me-1">RO Approved</span>' : ''}
+          ${isArchived ? '<span class="badge bg-dark me-1">Archived</span>' : ''}
           <div class="text-muted small mt-1">Submitted: ${formatDateToYMD(r.timestamp, true)} | IC: ${r.icNo}</div>
         </div>
-        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${cardKey}" type="button">View Details ▼</button>
       </div>
 
-      <div class="record-details d-none" id="details-${r.rowIndex}">
+      <div class="record-details d-none" id="details-${cardKey}">
         <div class="row g-2 mb-2">
           <div class="col-md-6">${renderEditableCell(r, 'fullName', 'Full Name', canEdit)}</div>
           <div class="col-md-6">${renderEditableCell(r, 'icNo', 'IC No', canEdit)}</div>
@@ -991,7 +1000,7 @@ function setRoPendingStateFilter(filterVal) {
 }
 
 function renderRoPendingStateView() {
-  const allPendingState = (currentData.records || []).filter(r => r.stateStatus === 'PENDING');
+  const allPendingState = (currentData.records || []).filter(r => !r.isArchived && r.stateStatus === 'PENDING');
   if (!allPendingState.length) {
     document.getElementById('content-container').innerHTML = 
       `<div class="alert alert-success">No applications currently pending State approval across Malaysia.</div>`;
@@ -1053,10 +1062,11 @@ function renderRoPendingStateView() {
     const icDupes = findIcDuplicates(r);
     const hasDupe = icDupes.length > 0;
     const hasPrecheckTx = Boolean(r.transactionNo && cleanKey(r.transactionNo));
+    const cardKey = getCardKey(r);
 
     html += `
     <div class="record-card ${isAging ? 'card-aging' : ''} ${hasDupe ? 'border-danger' : ''}" id="card-${r.rowIndex}">
-      <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+      <div class="record-summary" onclick="toggleDetails('${cardKey}')">
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="badge badge-state me-1">${r.state}</span>
@@ -1065,10 +1075,10 @@ function renderRoPendingStateView() {
           ${hasDupe ? '<span class="badge badge-duplicate me-1">⚠️ Possible IC Duplicate</span>' : ''}
           <div class="text-muted small mt-1">Submitted: <strong>${formatDateToYMD(r.timestamp, true)}</strong> | IC: ${r.icNo}</div>
         </div>
-        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${cardKey}" type="button">View Details ▼</button>
       </div>
 
-      <div class="record-details d-none" id="details-${r.rowIndex}">
+      <div class="record-details d-none" id="details-${cardKey}">
         ${isAging ? `<div class="alert alert-danger py-2 small mb-3"><strong>⚠️ Delayed Application:</strong> Submitted over 7 days ago and has not received State Admin review.</div>` : ''}
 
         ${hasDupe ? `
@@ -1130,7 +1140,7 @@ function renderRoPendingStateView() {
               <input type="text" id="rorem-${r.rowIndex}" class="form-control form-control-sm" placeholder="e.g. Receipt verified" value="${r.roRemarks || ''}">
             </div>
             <div class="col-md-3">
-              <button class="btn btn-primary btn-sm w-100" type="button" onclick="submitPrecheckTx(${r.rowIndex})">
+              <button class="btn btn-primary btn-sm w-100" id="btn-precheck-${r.rowIndex}" type="button" onclick="submitPrecheckTx(${r.rowIndex})">
                 Save Pre-check 💾
               </button>
             </div>
@@ -1156,7 +1166,7 @@ function renderRoPendingStateView() {
 
 // 4. RATING OFFICER: PAYMENT & VERIFICATION
 function renderRoPendingView() {
-  const pending = (currentData.records || []).filter(r => r.stateStatus === 'APPROVED' && r.roStatus === 'PENDING');
+  const pending = (currentData.records || []).filter(r => !r.isArchived && r.stateStatus === 'APPROVED' && r.roStatus === 'PENDING');
   if (!pending.length) {
     document.getElementById('content-container').innerHTML = 
       `<div class="alert alert-success">No registrations currently awaiting payment verification.</div>`;
@@ -1169,10 +1179,11 @@ function renderRoPendingView() {
     const icDupes = findIcDuplicates(r);
     const hasDupe = icDupes.length > 0;
     const isPrechecked = Boolean(r.transactionNo && cleanKey(r.transactionNo));
+    const cardKey = getCardKey(r);
 
     html += `
     <div class="record-card ${hasDupe ? 'border-danger' : ''}" id="card-${r.rowIndex}">
-      <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+      <div class="record-summary" onclick="toggleDetails('${cardKey}')">
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="badge badge-state">${r.state}</span>
@@ -1180,10 +1191,10 @@ function renderRoPendingView() {
           ${hasDupe ? '<span class="badge badge-duplicate ms-1">⚠️ IC Duplicate</span>' : ''}
           <div class="text-muted small mt-1">State OK: ${formatDateToYMD(r.stateActionTime, true)} | IC: ${r.icNo}</div>
         </div>
-        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${cardKey}" type="button">View Details ▼</button>
       </div>
 
-      <div class="record-details d-none" id="details-${r.rowIndex}">
+      <div class="record-details d-none" id="details-${cardKey}">
         ${hasDupe ? `
           <div class="alert alert-danger p-2 small mb-3">
             <strong>⚠️ DUPLICATE IC:</strong>
@@ -1268,7 +1279,7 @@ function renderRoPendingView() {
 
 // 5. RATING OFFICER: TO BE ASSIGNED FIDE ID
 function renderRoAssignmentView() {
-  const assignable = (currentData.records || []).filter(r => r.roStatus === 'APPROVED' && r.fideIdStatus !== 'ASSIGNED');
+  const assignable = (currentData.records || []).filter(r => !r.isArchived && r.roStatus === 'APPROVED' && r.fideIdStatus !== 'ASSIGNED');
   if (!assignable.length) {
     document.getElementById('content-container').innerHTML = 
       `<div class="alert alert-success">No records currently pending FIDE ID assignment.</div>`;
@@ -1286,19 +1297,20 @@ function renderRoAssignmentView() {
                                    (origLast && curLast && origLast.toLowerCase() !== curLast.toLowerCase()));
 
     const combinedFideName = `${curLast || '-'}, ${curFirst || '-'}`;
+    const cardKey = getCardKey(r);
 
     html += `
     <div class="record-card" id="card-${r.rowIndex}">
-      <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+      <div class="record-summary" onclick="toggleDetails('${cardKey}')">
         <div>
           <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
           <span class="badge badge-state">${r.state}</span>
           <div class="text-muted small mt-1">Verified: ${formatDateToYMD(r.roActionTime, true)} | IC: ${r.icNo}</div>
         </div>
-        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
+        <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${cardKey}" type="button">View Details ▼</button>
       </div>
 
-      <div class="record-details d-none" id="details-${r.rowIndex}">
+      <div class="record-details d-none" id="details-${cardKey}">
         <div class="row g-2 mb-3">
           <div class="col-md-7">${renderEditableCell(r, 'fullName', 'Full Name per IC', true)}</div>
           <div class="col-md-5">
@@ -1310,7 +1322,7 @@ function renderRoAssignmentView() {
 
           <!-- COMBINED [LAST NAME, FIRST NAME] CELL -->
           <div class="col-md-8">
-            <div class="grid-cell ${isNameModified ? 'cell-modified' : ''}" id="cell-container-combinedName-${r.rowIndex}">
+            <div class="grid-cell ${isNameModified ? 'cell-modified' : ''}" id="cell-container-combinedName-${cardKey}">
               <span class="cell-title">
                 <span>
                   Last Name, First Name
@@ -1321,7 +1333,7 @@ function renderRoAssignmentView() {
                   <button type="button" class="btn-edit-field" title="Edit First Name" onclick="openEditFieldModal(${r.rowIndex}, 'firstName', 'First Name')">✏️ First</button>
                 </span>
               </span>
-              <span class="cell-content text-primary fs-6" id="cell-val-combinedName-${r.rowIndex}">${combinedFideName}</span>
+              <span class="cell-content text-primary fs-6" id="cell-val-combinedName-${cardKey}">${combinedFideName}</span>
             </div>
           </div>
 
@@ -1488,10 +1500,11 @@ function executeMasterSearch(page) {
     }
 
     let html = '';
-    list.forEach(r => {
+    list.forEach((r, idx) => {
+      const cardKey = r.uid || `MASTER_${idx}_${r.rowIndex}`;
       html += `
-      <div class="record-card shadow-sm" id="card-${r.rowIndex}">
-        <div class="record-summary" onclick="toggleDetails(${r.rowIndex})">
+      <div class="record-card shadow-sm" id="card-${cardKey}">
+        <div class="record-summary" onclick="toggleDetails('${cardKey}')">
           <div>
             <span class="fw-bold fs-6 text-dark me-2">${r.fullName}</span>
             <span class="badge badge-state me-2">${r.state}</span>
@@ -1499,10 +1512,10 @@ function executeMasterSearch(page) {
             ${r.assignedFideId ? `<span class="badge bg-dark">FIDE ID: ${r.assignedFideId}</span>` : ''}
             <div class="text-muted small mt-1">Submitted: ${formatDateToYMD(r.timestamp, true)} | IC: ${r.icNo}</div>
           </div>
-          <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${r.rowIndex}" type="button">View Details ▼</button>
+          <button class="btn btn-outline-primary btn-sm" id="toggle-btn-${cardKey}" type="button">View Details ▼</button>
         </div>
 
-        <div class="record-details d-none" id="details-${r.rowIndex}">
+        <div class="record-details d-none" id="details-${cardKey}">
           <div class="row g-2 mb-2">
             <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Full Name per IC</span><span class="cell-content">${r.fullName}</span></div></div>
             <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Last Name, First Name</span><span class="cell-content">${r.lastName || '-'}, ${r.firstName || '-'}</span></div></div>
@@ -1578,7 +1591,7 @@ function submitPrecheckTx(rowIndex) {
   const token = getToken();
   const tx = document.getElementById(`tx-${rowIndex}`).value.trim();
   const remarks = document.getElementById(`rorem-${rowIndex}`).value.trim();
-  const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const record = (currentData.records || []).find(r => !r.isArchived && r.rowIndex === rowIndex);
   const ic = record ? record.icNo : '';
   const fullName = record ? record.fullName : '';
   const timestamp = record ? record.timestamp : '';
@@ -1591,13 +1604,13 @@ function submitPrecheckTx(rowIndex) {
   const clean = cleanKey(tx);
   const txMap = currentData.txMap || {};
   const dupeTx = txMap[clean];
-  if (dupeTx && dupeTx.rowIndex !== rowIndex) {
+  if (dupeTx && (dupeTx.rowIndex !== rowIndex || dupeTx.source === 'Archive')) {
     if (!confirm(`⛔ WARNING: Transaction No "${tx}" is already registered to "${dupeTx.fullName}" (${dupeTx.state}) [${dupeTx.source || 'Active Sheet'}]!\n\nDo you still want to save this pre-check?`)) {
       return;
     }
   }
 
-  const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
+  const idx = currentData.records.findIndex(r => !r.isArchived && r.rowIndex === rowIndex);
   if (idx !== -1) {
     currentData.records[idx].transactionNo = tx;
     currentData.records[idx].roRemarks = remarks;
@@ -1605,13 +1618,16 @@ function submitPrecheckTx(rowIndex) {
   currentData.txMap[clean] = {
     rowIndex: rowIndex,
     fullName: record?.fullName || 'Applicant',
-    state: 'Active'
+    state: record?.state || 'Active',
+    source: 'Active'
   };
 
-  const btn = event.target;
-  const originalHtml = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Saving...`;
+  const btn = document.getElementById(`btn-precheck-${rowIndex}`);
+  const originalHtml = btn ? btn.innerHTML : 'Save Pre-check 💾';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Saving...`;
+  }
 
   callApi({
     action: 'savePrecheckTx',
@@ -1623,14 +1639,18 @@ function submitPrecheckTx(rowIndex) {
     fullName: fullName,
     timestamp: timestamp
   }, res => {
-    btn.disabled = false;
-    btn.innerHTML = `Saved! ✔️`;
-    setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `Saved! ✔️`;
+      setTimeout(() => { if (btn) btn.innerHTML = originalHtml; }, 2000);
+    }
     if (!res.success) alert("Error saving pre-check: " + res.error);
     else renderRoPendingStateView();
   }, err => {
-    btn.disabled = false;
-    btn.innerHTML = originalHtml;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
     alert("Connection error: " + err.message);
   });
 }
@@ -1638,7 +1658,7 @@ function submitPrecheckTx(rowIndex) {
 function submitState(rowIndex, status, isDupe) {
   const token = getToken();
   const remarks = document.getElementById(`rem-${rowIndex}`).value;
-  const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const record = (currentData.records || []).find(r => !r.isArchived && r.rowIndex === rowIndex);
   const ic = record ? record.icNo : '';
   const fullName = record ? record.fullName : '';
   const timestamp = record ? record.timestamp : '';
@@ -1654,7 +1674,7 @@ function submitState(rowIndex, status, isDupe) {
   if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Updating database...`;
 
   removeCardLocally(rowIndex, () => {
-    const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
+    const idx = currentData.records.findIndex(r => !r.isArchived && r.rowIndex === rowIndex);
     if (idx !== -1) {
       currentData.records[idx].stateStatus = status;
       currentData.records[idx].stateRemarks = remarks;
@@ -1683,7 +1703,7 @@ function submitState(rowIndex, status, isDupe) {
 function reEvaluateState(rowIndex, status) {
   const token = getToken();
   const remarks = document.getElementById(`rem-${rowIndex}`).value;
-  const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const record = (currentData.records || []).find(r => !r.isArchived && r.rowIndex === rowIndex);
   const ic = record ? record.icNo : '';
   const fullName = record ? record.fullName : '';
   const timestamp = record ? record.timestamp : '';
@@ -1693,7 +1713,7 @@ function reEvaluateState(rowIndex, status) {
   const btnGroup = document.getElementById(`btn-group-${rowIndex}`);
   if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Saving changes...`;
 
-  const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
+  const idx = currentData.records.findIndex(r => !r.isArchived && r.rowIndex === rowIndex);
   if (idx !== -1) {
     currentData.records[idx].stateStatus = status;
     currentData.records[idx].stateRemarks = remarks;
@@ -1723,7 +1743,7 @@ function submitRo(rowIndex, status, isDupe) {
   const token = getToken();
   const tx = document.getElementById(`tx-${rowIndex}`).value;
   const remarks = document.getElementById(`rorem-${rowIndex}`).value;
-  const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const record = (currentData.records || []).find(r => !r.isArchived && r.rowIndex === rowIndex);
   const ic = record ? record.icNo : '';
   const fullName = record ? record.fullName : '';
   const timestamp = record ? record.timestamp : '';
@@ -1736,7 +1756,7 @@ function submitRo(rowIndex, status, isDupe) {
     const clean = cleanKey(tx);
     const txMap = currentData.txMap || {};
     const dupeTx = txMap[clean];
-    if (dupeTx && dupeTx.rowIndex !== rowIndex) {
+    if (dupeTx && (dupeTx.rowIndex !== rowIndex || dupeTx.source === 'Archive')) {
       if (!confirm(`⛔ WARNING: Transaction No "${tx}" is already registered to "${dupeTx.fullName}" (${dupeTx.state}) [${dupeTx.source || 'Active Sheet'}]!\n\nAre you sure you want to approve?`)) {
         return;
       }
@@ -1748,7 +1768,8 @@ function submitRo(rowIndex, status, isDupe) {
     currentData.txMap[clean] = {
       rowIndex: rowIndex,
       fullName: record?.fullName || 'Applicant',
-      state: 'Active'
+      state: record?.state || 'Active',
+      source: 'Active'
     };
   }
 
@@ -1756,7 +1777,7 @@ function submitRo(rowIndex, status, isDupe) {
   if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Updating database...`;
 
   removeCardLocally(rowIndex, () => {
-    const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
+    const idx = currentData.records.findIndex(r => !r.isArchived && r.rowIndex === rowIndex);
     if (idx !== -1) {
       currentData.records[idx].roStatus = status;
       currentData.records[idx].roRemarks = remarks;
@@ -1788,7 +1809,7 @@ function submitRo(rowIndex, status, isDupe) {
 function submitFide(rowIndex) {
   const token = getToken();
   const id = document.getElementById(`fide-${rowIndex}`).value;
-  const record = (currentData.records || []).find(r => r.rowIndex === rowIndex);
+  const record = (currentData.records || []).find(r => !r.isArchived && r.rowIndex === rowIndex);
   const ic = record ? record.icNo : '';
   const fullName = record ? record.fullName : '';
   const timestamp = record ? record.timestamp : '';
@@ -1802,7 +1823,7 @@ function submitFide(rowIndex) {
   if (btnGroup) btnGroup.innerHTML = `<span class="spinner-border spinner-border-sm text-primary"></span> Saving ID...`;
 
   removeCardLocally(rowIndex, () => {
-    const idx = currentData.records.findIndex(r => r.rowIndex === rowIndex);
+    const idx = currentData.records.findIndex(r => !r.isArchived && r.rowIndex === rowIndex);
     if (idx !== -1) {
       currentData.records[idx].fideIdStatus = 'ASSIGNED';
       currentData.records[idx].assignedFideId = id;
