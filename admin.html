@@ -1673,8 +1673,6 @@ function submitState(rowIndex, status, isDupe) {
     if (!res.success) {
       alert("Error updating record: " + res.error);
       fetchDashboardData();
-    } else if (status === 'REJECTED') {
-      adjustLocalRowIndicesAfterDelete(rowIndex);
     }
   });
 }
@@ -1710,8 +1708,6 @@ function reEvaluateState(rowIndex, status) {
   }, res => {
     if (!res.success) {
       alert("Error saving re-evaluation: " + res.error);
-    } else if (status === 'REJECTED') {
-      adjustLocalRowIndicesAfterDelete(rowIndex);
     }
     renderStateHistoryView();
   }, err => {
@@ -1782,8 +1778,6 @@ function submitRo(rowIndex, status, isDupe) {
     if (!res.success) {
       alert("Error updating review: " + res.error);
       fetchDashboardData();
-    } else if (status === 'REJECTED') {
-      adjustLocalRowIndicesAfterDelete(rowIndex);
     }
   });
 }
@@ -1825,8 +1819,6 @@ function submitFide(rowIndex) {
     if (!res.success) {
       alert("Error saving FIDE ID: " + res.error);
       fetchDashboardData();
-    } else {
-      adjustLocalRowIndicesAfterDelete(rowIndex);
     }
   });
 }
