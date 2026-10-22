@@ -860,7 +860,7 @@ function renderStatePendingView() {
           <div class="alert alert-danger p-2 small mb-3">
             <strong>⚠️ DUPLICATE IC FOUND:</strong>
             <ul class="mb-0 mt-1">
-              ${icDupes.map(d => `<li><strong>${d.fullName}</strong> (${d.state}) - State Status: <em>${d.stateStatus || d.source}</em> | FIDE ID: <strong>${d.assignedFideId || 'Not assigned'}</strong></li>`).join('')}
+              ${icDupes.map(d => `<li><strong>${d.fullName}</strong> (${d.state}) - State Status: <em class="fw-bold">${d.stateStatus}</em> | FIDE ID: <strong>${d.assignedFideId || 'Not assigned'}</strong> [${d.source}]</li>`).join('')}
             </ul>
           </div>
         ` : ''}
@@ -1086,7 +1086,7 @@ function renderRoPendingStateView() {
           <div class="alert alert-danger p-2 small mb-3">
             <strong>⚠️ DUPLICATE IC FOUND:</strong> Matches existing submissions:
             <ul class="mb-0 mt-1">
-              ${icDupes.map(d => `<li><strong>${d.fullName}</strong> (${d.state}) - State Status: <em>${d.stateStatus || d.source}</em> | FIDE ID: <strong>${d.assignedFideId || 'Not assigned'}</strong> [${d.source || 'Active'}]</li>`).join('')}
+              ${icDupes.map(d => `<li><strong>${d.fullName}</strong> (${d.state}) - State Status: <em class="fw-bold">${d.stateStatus}</em> | FIDE ID: <strong>${d.assignedFideId || 'Not assigned'}</strong> [${d.source}]</li>`).join('')}
             </ul>
           </div>
         ` : ''}
@@ -1200,7 +1200,7 @@ function renderRoPendingView() {
           <div class="alert alert-danger p-2 small mb-3">
             <strong>⚠️ DUPLICATE IC:</strong>
             <ul class="mb-0 mt-1">
-              ${icDupes.map(d => `<li><strong>${d.fullName}</strong> (${d.state}) - FIDE ID: <strong>${d.assignedFideId || 'None'}</strong> [${d.source || 'Active'}]</li>`).join('')}
+              ${icDupes.map(d => `<li><strong>${d.fullName}</strong> (${d.state}) - State Status: <em class="fw-bold">${d.stateStatus}</em> | FIDE ID: <strong>${d.assignedFideId || 'None'}</strong> [${d.source}]</li>`).join('')}
             </ul>
           </div>
         ` : ''}
