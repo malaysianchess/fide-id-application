@@ -808,6 +808,7 @@ function recalculateLiveIcDuplicates(rowIndex, oldIc, newIc) {
   const cleanNew = cleanKey(newIc);
   const matches = [];
   (currentData.records || []).forEach(r => {
+    if (r.stateStatus === 'REJECTED' || r.roStatus === 'REJECTED') return;
     if ((r.isArchived || r.rowIndex !== rowIndex) && cleanKey(r.icNo) === cleanNew) {
       matches.push({
         rowIndex: r.rowIndex,
