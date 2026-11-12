@@ -1340,7 +1340,19 @@ function renderRoAssignmentView() {
 
           <div class="col-md-4"><div class="grid-cell"><span class="cell-title">State</span><span class="cell-content">${r.state || '-'}</span></div></div>
           <div class="col-md-4">${renderEditableCell(r, 'dob', 'BirthDate (YYYY-MM-DD)', true)}</div>
-          <div class="col-md-3">${renderEditableCell(r, 'sex', 'Gender', true)}</div>
+          <div class="col-md-3">
+            <div class="grid-cell">
+              <span class="cell-title">
+                <span>Gender</span>
+                <button type="button" class="btn-edit-field" title="Edit Gender" onclick="openEditFieldModal(${r.rowIndex}, 'sex', 'Gender')">✏️ Edit</button>
+              </span>
+              <span class="cell-content">
+                <span class="badge ${String(r.sex || '').trim().toLowerCase() === 'female' ? 'bg-danger text-white' : 'bg-primary text-white'} px-2 py-1">
+                  ${r.sex || '-'}
+                </span>
+              </span>
+            </div>
+          </div>
           <div class="col-md-5"><div class="grid-cell"><span class="cell-title">Contact</span><span class="cell-content">${r.mobile || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Email</span><span class="cell-content">${r.email || '-'}</span></div></div>
           <div class="col-md-6"><div class="grid-cell"><span class="cell-title">Address</span><span class="cell-content">${r.address || '-'}</span></div></div>
